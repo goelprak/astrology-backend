@@ -136,3 +136,36 @@ async def get_muhurat(request: MuhuratRequest):
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+# KP Astrology Endpoints
+
+@app.post("/api/astrology/kp-chart")
+async def get_kp_chart(request: NatalChartRequest):
+    try:
+        result = astrology.calculate_kp_chart(request.birth_date, request.birth_time, request.latitude, request.longitude, request.timezone)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/astrology/kp-dasha")
+async def get_kp_dasha(request: NatalChartRequest):
+    try:
+        result = astrology.calculate_vimshottari_dasha(request.birth_date, request.birth_time, request.latitude, request.longitude, request.timezone)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+class HoraryRequest(BaseModel):
+    question: str
+    question_date: str
+    question_time: str
+    latitude: float
+    longitude: float
+
+@app.post("/api/astrology/kp-horary")
+async def get_kp_horary(request: HoraryRequest):
+    try:
+        result = astrology.calculate_horary_kp(request.question, request.question_date, request.question_time, request.latitude, request.longitude)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
