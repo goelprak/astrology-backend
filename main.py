@@ -224,4 +224,4 @@ async def ai_chat(request: AIChatRequest):
             return {"response": result["choices"][0]["message"]["content"]}
             
     except Exception as e:
-        return {"response": f"AI Error: {str(e)}. Please check API key and try again."}
+        return {"response": f"AI Error: {str(e)}"}
