@@ -175,13 +175,8 @@ async def get_kp_horary(request: HoraryRequest):
 
 # OpenAI Chat Endpoint
 
-class AIChatRequest(BaseModel):
-    message: str = ""
-    birth_data: dict = None
-
-
 @app.post("/api/ai/chat")
-async def ai_chat(request: AIChatRequest):
+async def ai_chat(request: dict):
     try:
         api_key = os.environ.get("OPENAI_API_KEY")
         if not api_key:
@@ -193,7 +188,7 @@ async def ai_chat(request: AIChatRequest):
         
         context = "You are a knowledgeable astrologer specializing in Vedic astrology, KP astrology, Numerology, and Tarot. Provide detailed, helpful readings."
         
-        msg = request.message if request.message else ""
+        msg = request.get("message", "") if isinstance(request, dict) else ""
         
         response = client.chat.completions.create(
             model="gpt-4o-mini",
