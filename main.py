@@ -176,8 +176,8 @@ async def get_kp_horary(request: HoraryRequest):
 # OpenAI Chat Endpoint
 
 class AIChatRequest(BaseModel):
-    message: str
-    birth_data: Optional[dict] = None
+    message: str = ""
+    birth_data: dict = None
 
 
 @app.post("/api/ai/chat")
