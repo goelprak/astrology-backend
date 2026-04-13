@@ -186,7 +186,11 @@ async def ai_chat(request: Request):
         body_str = body.decode('utf-8')
         
         import json
-        data = json.loads(body_str)
+        try:
+            data = json.loads(body_str)
+        except json.JSONDecodeError as je:
+            return {"response": f"JSON parse error: {str(je)}, body was: {repr(body_str)}"}
+        
         msg = data.get("message", "")
         
         from openai import OpenAI
