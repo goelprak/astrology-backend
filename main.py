@@ -1,4 +1,5 @@
 from fastapi import FastAPI, HTTPException
+from typing import Optional
 from fastapi.middleware.cors import CORSMiddleware
 from datetime import datetime
 from pydantic import BaseModel
@@ -176,7 +177,7 @@ async def get_kp_horary(request: HoraryRequest):
 
 class AIChatRequest(BaseModel):
     message: str
-    birth_data: dict = {}
+    birth_data: Optional[dict] = {}
 
 
 @app.post("/api/ai/chat")
