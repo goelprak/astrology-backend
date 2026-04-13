@@ -189,7 +189,8 @@ async def ai_chat(request: Request):
         try:
             data = json.loads(body_str)
         except json.JSONDecodeError as je:
-            clean_body = body_str.replace('\\:', ':').replace('\\\\', '\\').replace('\\}', '}').replace('\\{', '{')
+            import re
+            clean_body = body_str.encode('utf-8').decode('unicode_escape')
             try:
                 data = json.loads(clean_body)
             except:
