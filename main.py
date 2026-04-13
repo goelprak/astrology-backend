@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Request
 from typing import Optional
 from fastapi.middleware.cors import CORSMiddleware
 from datetime import datetime
@@ -176,19 +176,20 @@ async def get_kp_horary(request: HoraryRequest):
 # OpenAI Chat Endpoint
 
 @app.post("/api/ai/chat")
-async def ai_chat(request: dict):
+async def ai_chat(request: Request):
     try:
         api_key = os.environ.get("OPENAI_API_KEY")
         if not api_key:
             return {"response": "AI not configured. Please set OPENAI_API_KEY in environment variables."}
         
+        body = await request.json()
         from openai import OpenAI
         
         client = OpenAI(api_key=api_key)
         
         context = "You are a knowledgeable astrologer specializing in Vedic astrology, KP astrology, Numerology, and Tarot. Provide detailed, helpful readings."
         
-        msg = request.get("message", "") if isinstance(request, dict) else ""
+        msg = body.get("message", "") if isinstance(body, dict) else ""
         
         response = client.chat.completions.create(
             model="gpt-4o-mini",
