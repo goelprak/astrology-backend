@@ -187,41 +187,24 @@ async def ai_chat(request: AIChatRequest):
         if not api_key:
             return {"response": "AI not configured. Please set OPENAI_API_KEY in environment variables."}
         
-        import httpx
+        from openai import OpenAI
+        
+        client = OpenAI(api_key=api_key)
         
         context = "You are a knowledgeable astrologer specializing in Vedic astrology, KP astrology, Numerology, and Tarot. Provide detailed, helpful readings."
         
-        birth_data = request.birth_data or {}
-        if birth_data:
-            context += f"\n\nUser's Birth Data: {birth_data}"
+        msg = request.message if request.message else ""
         
-        headers = {
-            "Authorization": f"Bearer {api_key}",
-            "Content-Type": "application/json"
-        }
-        
-        payload = {
-            "model": "gpt-4o-mini",
-            "messages": [
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
                 {"role": "system", "content": context},
-                {"role": "user", "content": request.message}
+                {"role": "user", "content": msg}
             ],
-            "max_tokens": 500
-        }
+            max_tokens=500
+        )
         
-        async with httpx.AsyncClient() as client:
-            response = await client.post(
-                "https://api.openai.com/v1/chat/completions",
-                headers=headers,
-                json=payload,
-                timeout=30.0
-            )
-            
-            if response.status_code != 200:
-                return {"response": f"AI Error: {response.text}"}
-            
-            result = response.json()
-            return {"response": result["choices"][0]["message"]["content"]}
-            
+        return {"response": response.choices[0].message.content}
+        
     except Exception as e:
         return {"response": f"AI Error: {str(e)}"}
