@@ -182,17 +182,17 @@ async def ai_chat(request: Request):
         if not api_key:
             return {"response": "AI not configured. Please set OPENAI_API_KEY in environment variables."}
         
-        if not api_key.startswith("sk-"):
-            return {"response": f"Invalid API key format. Key should start with 'sk-', got: {api_key[:20]}..."}
+        body = await request.body()
+        body_str = body.decode('utf-8')
         
-        body = await request.json()
+        import json
+        data = json.loads(body_str)
+        msg = data.get("message", "")
+        
         from openai import OpenAI
-        
         client = OpenAI(api_key=api_key)
         
         context = "You are a knowledgeable astrologer specializing in Vedic astrology, KP astrology, Numerology, and Tarot. Provide detailed, helpful readings."
-        
-        msg = body.get("message", "") if isinstance(body, dict) else ""
         
         response = client.chat.completions.create(
             model="gpt-4o-mini",
