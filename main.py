@@ -177,7 +177,7 @@ async def get_kp_horary(request: HoraryRequest):
 
 class AIChatRequest(BaseModel):
     message: str
-    birth_data: Optional[dict] = {}
+    birth_data: Optional[dict] = None
 
 
 @app.post("/api/ai/chat")
@@ -191,7 +191,7 @@ async def ai_chat(request: AIChatRequest):
         
         context = "You are a knowledgeable astrologer specializing in Vedic astrology, KP astrology, Numerology, and Tarot. Provide detailed, helpful readings."
         
-        birth_data = request.birth_data if request.birth_data else {}
+        birth_data = request.birth_data or {}
         if birth_data:
             context += f"\n\nUser's Birth Data: {birth_data}"
         
