@@ -186,23 +186,40 @@ async def ai_chat(request: AIChatRequest):
         if not api_key:
             return {"response": "AI not configured. Please set OPENAI_API_KEY in environment variables."}
         
-        from openai import OpenAI
-        client = OpenAI(api_key=api_key)
+        import httpx
         
         context = "You are a knowledgeable astrologer specializing in Vedic astrology, KP astrology, Numerology, and Tarot. Provide detailed, helpful readings."
         
         if request.birth_data:
             context += f"\n\nUser's Birth Data: {request.birth_data}"
         
-        response = client.chat.completions.create(
-            model="gpt-3.5-turbo",
-            messages=[
+        headers = {
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json"
+        }
+        
+        payload = {
+            "model": "gpt-3.5-turbo",
+            "messages": [
                 {"role": "system", "content": context},
                 {"role": "user", "content": request.message}
             ],
-            max_tokens=500
-        )
+            "max_tokens": 500
+        }
         
-        return {"response": response.choices[0].message.content}
+        async with httpx.AsyncClient() as client:
+            response = await client.post(
+                "https://api.openai.com/v1/chat/completions",
+                headers=headers,
+                json=payload,
+                timeout=30.0
+            )
+            
+            if response.status_code != 200:
+                return {"response": f"AI Error: {response.text}"}
+            
+            result = response.json()
+            return {"response": result["choices"][0]["message"]["content"]}
+            
     except Exception as e:
         return {"response": f"AI Error: {str(e)}. Please check API key and try again."}
