@@ -3,6 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from datetime import datetime
 from pydantic import BaseModel
 import astrology
+import os
 
 app = FastAPI(title="Astrology API")
 
@@ -168,15 +169,15 @@ async def get_kp_horary(request: HoraryRequest):
         result = astrology.calculate_horary_kp(request.question, request.question_date, request.question_time, request.latitude, request.longitude)
         return result
     except Exception as e:
-<<<<<<< HEAD
         raise HTTPException(status_code=500, detail=str(e))
 
+
 # OpenAI Chat Endpoint
-import os
 
 class AIChatRequest(BaseModel):
     message: str
     birth_data: dict = None
+
 
 @app.post("/api/ai/chat")
 async def ai_chat(request: AIChatRequest):
@@ -205,6 +206,3 @@ async def ai_chat(request: AIChatRequest):
         return {"response": response.choices[0].message.content}
     except Exception as e:
         return {"response": f"AI Error: {str(e)}. Please check API key and try again."}
-=======
-        raise HTTPException(status_code=500, detail=str(e))
->>>>>>> cf6aa109826a2e7ad78b7a7f38fb868fce9a0db7
