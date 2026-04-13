@@ -185,7 +185,9 @@ async def ai_chat(request: Request):
         body = await request.body()
         body_str = body.decode('utf-8')
         
-        return {"debug": f"Received body: {repr(body_str)}"}
+        import json
+        data = json.loads(body_str)
+        msg = data.get("message", "")
         
         from openai import OpenAI
         client = OpenAI(api_key=api_key)
