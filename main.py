@@ -190,8 +190,9 @@ async def ai_chat(request: AIChatRequest):
         
         context = "You are a knowledgeable astrologer specializing in Vedic astrology, KP astrology, Numerology, and Tarot. Provide detailed, helpful readings."
         
-        if request.birth_data:
-            context += f"\n\nUser's Birth Data: {request.birth_data}"
+        birth_data = request.birth_data if request.birth_data else {}
+        if birth_data:
+            context += f"\n\nUser's Birth Data: {birth_data}"
         
         headers = {
             "Authorization": f"Bearer {api_key}",
