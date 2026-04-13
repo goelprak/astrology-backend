@@ -176,7 +176,7 @@ async def get_kp_horary(request: HoraryRequest):
 
 class AIChatRequest(BaseModel):
     message: str
-    birth_data: dict = None
+    birth_data: dict = {}
 
 
 @app.post("/api/ai/chat")
