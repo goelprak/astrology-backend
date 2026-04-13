@@ -1095,3 +1095,320 @@ def calculate_muhurat(date: str, city: str = "Delhi") -> Dict[str, Any]:
         },
         "advice": "For best results, start important work during Shubh or Amrit Muhurat."
     }
+
+# ===================== KRISHNAMURTI PADDHATI (KP) ASTROLOGY =====================
+
+NAKSHATRAS = [
+    "Ashwini", "Bharani", "Krittika", "Rohini", "Mrigashira", "Ardra",
+    "Punarvasu", "Pushya", "Ashlesha", "Magha", "Poorva Phalguni", "Uttara Phalguni",
+    "Hasta", "Chitra", "Swati", "Vishakha", "Anuradha", "Jyeshtha",
+    "Mula", "Poorvashadha", "Uttarashadha", "Shravana", "Dhanishta", "Shatabhisha",
+    "Poorvabhadrapada", "Uttarabhadrapada", "Revati"
+]
+
+NAKSHATRA_LORDS = [
+    "Ketu", "Venus", "Sun", "Moon", "Mars", "Rahu",
+    "Jupiter", "Saturn", "Mercury", "Ketu", "Venus", "Sun",
+    "Moon", "Mars", "Rahu", "Jupiter", "Saturn", "Mercury",
+    "Ketu", "Venus", "Sun", "Moon", "Mars", "Rahu",
+    "Jupiter", "Saturn", "Mercury"
+]
+
+NAKSHATRA_PADA = [
+    [1, 1, 1], [1, 1, 2], [1, 1, 3], [1, 2, 1], [1, 2, 2], [1, 2, 3],
+    [1, 3, 1], [1, 3, 2], [1, 3, 3], [2, 1, 1], [2, 1, 2], [2, 1, 3],
+    [2, 2, 1], [2, 2, 2], [2, 2, 3], [2, 3, 1], [2, 3, 2], [2, 3, 3],
+    [3, 1, 1], [3, 1, 2], [3, 1, 3], [3, 2, 1], [3, 2, 2], [3, 2, 3],
+    [3, 3, 1], [3, 3, 2], [3, 3, 3]
+]
+
+VIMSHOTTARI_MAHADASHA_ORDER = ["Ketu", "Venus", "Sun", "Moon", "Mars", "Rahu", "Jupiter", "Saturn", "Mercury"]
+VIMSHOTTARI_YEARS = {"Ketu": 7, "Venus": 20, "Sun": 6, "Moon": 10, "Mars": 7, "Rahu": 18, "Jupiter": 16, "Saturn": 19, "Mercury": 17}
+
+VIMSHOTTARI_SUB_PERIODS = {
+    "Ketu": ["Ketu", "Venus", "Sun", "Moon", "Mars", "Rahu", "Jupiter", "Saturn", "Mercury"],
+    "Venus": ["Venus", "Sun", "Moon", "Mars", "Rahu", "Jupiter", "Saturn", "Mercury", "Ketu"],
+    "Sun": ["Sun", "Moon", "Mars", "Rahu", "Jupiter", "Saturn", "Mercury", "Ketu", "Venus"],
+    "Moon": ["Moon", "Mars", "Rahu", "Jupiter", "Saturn", "Mercury", "Ketu", "Venus", "Sun"],
+    "Mars": ["Mars", "Rahu", "Jupiter", "Saturn", "Mercury", "Ketu", "Venus", "Sun", "Moon"],
+    "Rahu": ["Rahu", "Jupiter", "Saturn", "Mercury", "Ketu", "Venus", "Sun", "Moon", "Mars"],
+    "Jupiter": ["Jupiter", "Saturn", "Mercury", "Ketu", "Venus", "Sun", "Moon", "Mars", "Rahu"],
+    "Saturn": ["Saturn", "Mercury", "Ketu", "Venus", "Sun", "Moon", "Mars", "Rahu", "Jupiter"],
+    "Mercury": ["Mercury", "Ketu", "Venus", "Sun", "Moon", "Mars", "Rahu", "Jupiter", "Saturn"]
+}
+
+PLANET_TO_NAKSHATRA_LORD = {
+    "Sun": "Sun", "Moon": "Moon", "Mars": "Mars", "Mercury": "Mercury",
+    "Jupiter": "Jupiter", "Venus": "Venus", "Saturn": "Saturn",
+    "Rahu": "Rahu", "Ketu": "Ketu"
+}
+
+def get_nakshatra(degree: float) -> tuple:
+    nakshatra_index = int((degree % 360) / 13 + (1/3))
+    nakshatra_index = nakshatra_index % 27
+    pada = int(((degree % 13.333) / 3.333) + 1)
+    pada = min(pada, 4)
+    start_degree = nakshatra_index * 13.333
+    lord = NAKSHATRA_LORDS[nakshatra_index]
+    return NAKSHATRAS[nakshatra_index], pada, round(start_degree, 2), lord
+
+def get_kp_nakshatra(planet_degree: float) -> Dict:
+    nakshatra, pada, start_deg, lord = get_nakshatra(planet_degree)
+    sub_lord = NAKSHATRA_LORDS[NAKSHATRAS.index(nakshatra)]
+    return {
+        "nakshatra": nakshatra,
+        "lord": lord,
+        "sub_lord": sub_lord,
+        "pada": pada,
+        "degree": round(planet_degree, 2),
+        "start_degree": start_deg
+    }
+
+def calculate_kp_chart(birth_date: str, birth_time: str, latitude: float, longitude: float, timezone: str = "UTC") -> Dict:
+    try:
+        dt = datetime.strptime(f"{birth_date} {birth_time}", "%Y-%m-%d %H:%M")
+    except:
+        try:
+            dt = datetime.strptime(f"{birth_date} {birth_time}", "%Y-%m-%d %H:%M:%S")
+        except:
+            return {"error": "Invalid date/time format"}
+    
+    jd = datetime_to_julian_day(dt)
+    positions = calculate_planet_positions(jd, latitude, longitude)
+    
+    kp_planets = {}
+    for planet, degree in positions.items():
+        if planet in PLANET_TO_NAKSHATRA_LORD:
+            kp_planets[planet] = get_kp_nakshatra(degree)
+    
+    asc_nakshatra, asc_pada, asc_start, asc_lord = get_nakshatra(positions.get("Ascendant", 0))
+    kp_planets["Ascendant"] = {
+        "nakshatra": asc_nakshatra,
+        "lord": asc_lord,
+        "sub_lord": NAKSHATRA_LORDS[NAKSHATRAS.index(asc_nakshatra)],
+        "pada": asc_pada,
+        "degree": round(positions.get("Ascendant", 0), 2),
+        "start_degree": asc_start
+    }
+    
+    return {
+        "birth_date": birth_date,
+        "birth_time": birth_time,
+        "planets": kp_planets,
+        "significators": get_kp_significators(kp_planets)
+    }
+
+def get_kp_significators(kp_chart: Dict) -> Dict:
+    planet_significators = {}
+    for planet in ["Sun", "Moon", "Mars", "Mercury", "Jupiter", "Venus", "Saturn", "Rahu", "Ketu"]:
+        if planet in kp_chart:
+            nakshatra = kp_chart[planet].get("nakshatra", "")
+            nakshatra_idx = NAKSHATRAS.index(nakshatra) if nakshatra in NAKSHATRAS else 0
+            ruler = NAKSHATRA_LORDS[nakshatra_idx]
+            sign = get_zodiac_sign(kp_chart[planet].get("degree", 0))
+            
+            house_significators = {
+                1: ["Sun", "Moon", "Jupiter", "Mercury"],
+                2: ["Venus", "Mercury", "Moon"],
+                3: ["Mars", "Mercury", "Moon"],
+                4: ["Moon", "Venus", "Jupiter"],
+                5: ["Jupiter", "Sun", "Moon"],
+                6: ["Mars", "Saturn", "Rahu", "Ketu"],
+                7: ["Venus", "Moon", "Saturn"],
+                8: ["Saturn", "Rahu", "Ketu"],
+                9: ["Jupiter", "Sun", "Moon"],
+                10: ["Sun", "Jupiter", "Saturn", "Mercury"],
+                11: ["Jupiter", "Uranus", "Mercury"],
+                12: ["Saturn", "Ketu", "Rahu"]
+            }
+            
+            sign_num = ZODIAC_SIGNS.index(sign) + 1
+            sigs = house_significators.get(sign_num, [])
+            
+            planet_significators[planet] = {
+                "nakshatra": nakshatra,
+                "nakshatra_lord": ruler,
+                "sign": sign,
+                "sign_lord": PLANET_RULERS.get(sign, "Unknown"),
+                "significators": sigs
+            }
+    
+    return planet_significators
+
+def calculate_vimshottari_dasha(birth_date: str, birth_time: str, latitude: float, longitude: float, timezone: str = "UTC") -> Dict:
+    try:
+        dt = datetime.strptime(f"{birth_date} {birth_time}", "%Y-%m-%d %H:%M")
+    except:
+        try:
+            dt = datetime.strptime(f"{birth_date} {birth_time}", "%Y-%m-%d %H:%M:%S")
+        except:
+            return {"error": "Invalid date/time format"}
+    
+    jd = datetime_to_julian_day(dt)
+    positions = calculate_planet_positions(jd, latitude, longitude)
+    
+    moon_degree = positions.get("Moon", 0)
+    nakshatra_idx = int((moon_degree % 360) / 13.333) % 27
+    nakshatra_lord = NAKSHATRA_LORDS[nakshatra_idx]
+    
+    birth_jd = jd
+    current_jd = datetime_to_julian_day(datetime.now())
+    
+    dasha_intervals = []
+    total_years = sum(VIMSHOTTARI_YEARS.values())
+    
+    dasha_order = VIMSHOTTARI_MAHADASHA_ORDER
+    start_idx = dasha_order.index(nakshatra_lord) if nakshatra_lord in dasha_order else 0
+    
+    for i in range(9):
+        planet_idx = (start_idx + i) % 9
+        mahadasha_planet = dasha_order[planet_idx]
+        mahadasha_years = VIMSHOTTARI_YEARS[mahadasha_planet]
+        
+        elapsed_years = min(current_jd - birth_jd, mahadasha_years)
+        remaining_years = mahadasha_years - elapsed_years
+        
+        sub_periods = VIMSHOTTARI_SUB_PERIODS.get(mahadasha_planet, VIMSHOTTARI_MAHADASHA_ORDER)
+        sub_period_list = []
+        
+        total_sub_years = mahadasha_years
+        for j, sub_planet in enumerate(sub_periods):
+            sub_years = (VIMSHOTTARI_YEARS.get(sub_planet, 1) / total_years) * mahadasha_years
+            elapsed_sub = (elapsed_years / mahadasha_years) * sub_years if elapsed_years > 0 else 0
+            remaining_sub = sub_years - elapsed_sub
+            
+            sub_period_list.append({
+                "planet": sub_planet,
+                "years": round(sub_years, 2),
+                "remaining": round(max(0, remaining_sub), 2)
+            })
+        
+        dasha_intervals.append({
+            "mahadasha": mahadasha_planet,
+            "years": mahadasha_years,
+            "remaining": round(max(0, remaining_years), 2),
+            "sub_periods": sub_period_list
+        })
+    
+    current_dasha = dasha_intervals[0]["mahadasha"] if dasha_intervals else None
+    
+    return {
+        "birth_date": birth_date,
+        "moon_nakshatra": NAKSHATRAS[nakshatra_idx],
+        "moon_nakshatra_lord": nakshatra_lord,
+        "current_dasha": current_dasha,
+        "dasha_sequence": dasha_intervals,
+        "message": f"Moon is in {NAKSHATRAS[nakshatra_idx]} nakshatra, ruled by {nakshatra_lord}. Currently running {current_dasha} Mahadasha."
+    }
+
+def calculate_horary_kp(question: str, question_date: str, question_time: str, latitude: float, longitude: float) -> Dict:
+    try:
+        dt = datetime.strptime(f"{question_date} {question_time}", "%Y-%m-%d %H:%M")
+    except:
+        try:
+            dt = datetime.strptime(f"{question_date} {question_time}", "%Y-%m-%d %H:%M:%S")
+        except:
+            return {"error": "Invalid date/time format"}
+    
+    jd = datetime_to_julian_day(dt)
+    positions = calculate_planet_positions(jd, latitude, longitude)
+    
+    asc_degree = positions.get("Ascendant", 0)
+    asc_sign = get_zodiac_sign(asc_degree)
+    
+    asc_nakshatra, asc_pada, asc_start, asc_lord = get_nakshatra(asc_degree)
+    asc_sub_lord = NAKSHATRA_LORDS[NAKSHATRAS.index(asc_nakshatra)]
+    
+    horary_chart = {}
+    for planet, degree in positions.items():
+        if planet in PLANET_TO_NAKSHATRA_LORD:
+            kp_info = get_kp_nakshatra(degree)
+            horary_chart[planet] = kp_info
+    
+    horary_chart["Ascendant"] = {
+        "nakshatra": asc_nakshatra,
+        "lord": asc_lord,
+        "sub_lord": asc_sub_lord,
+        "pada": asc_pada,
+        "degree": round(asc_degree, 2)
+    }
+    
+    significator_planets = {
+        "1": "Ascendant lord",
+        "2": "Moon, Mercury",
+        "3": "Mars, Mercury",
+        "4": "Moon, Venus, Jupiter",
+        "5": "Jupiter, Sun, Moon",
+        "6": "Mars, Saturn, Rahu, Ketu",
+        "7": "Venus, Moon, Saturn",
+        "8": "Saturn, Rahu, Ketu",
+        "9": "Jupiter, Sun, Moon",
+        "10": "Sun, Jupiter, Saturn, Mercury",
+        "11": "Jupiter, Uranus, Mercury",
+        "12": "Saturn, Rahu, Ketu"
+    }
+    
+    answer = determine_horary_answer(horary_chart, question)
+    
+    return {
+        "question": question,
+        "question_time": f"{question_date} {question_time}",
+        "ascendant_sign": asc_sign,
+        "ascendant_nakshatra": asc_nakshatra,
+        "lord": asc_lord,
+        "sub_lord": asc_sub_lord,
+        "chart": horary_chart,
+        "significators": significator_planets,
+        "answer": answer
+    }
+
+def determine_horary_answer(chart: Dict, question: str) -> Dict:
+    question_lower = question.lower()
+    
+    asc_lord = chart.get("Ascendant", {}).get("lord", "")
+    moon = chart.get("Moon", {})
+    moon_nakshatra = moon.get("nakshatra", "")
+    moon_lord = moon.get("lord", "")
+    
+    if any(word in question_lower for word in ["marriage", "love", "partner", "relationship", "wedding"]):
+        sign = "7th"
+        significator = "Venus, Moon"
+        desc = "Look at 7th house and Venus for relationship matters."
+    elif any(word in question_lower for word in ["job", "career", "work", "promotion"]):
+        sign = "10th"
+        significator = "Sun, Saturn, Jupiter"
+        desc = "10th house and Saturn indicate career matters."
+    elif any(word in question_lower for word in ["money", "wealth", "finance", "income"]):
+        sign = "2nd"
+        significator = "Venus, Mercury, Moon"
+        desc = "2nd house indicates wealth and finances."
+    elif any(word in question_lower for word in ["health", "disease", "illness"]):
+        sign = "6th"
+        significator = "Mars, Saturn, Rahu"
+        desc = "6th house and Mars indicate health matters."
+    elif any(word in question_lower for word in ["child", "pregnancy", "birth"]):
+        sign = "5th"
+        significator = "Jupiter, Sun"
+        desc = "5th house and Jupiter indicate children."
+    elif any(word in question_lower for word in ["education", "study", "exam"]):
+        sign = "4th"
+        significator = "Moon, Jupiter, Mercury"
+        desc = "4th house and Mercury indicate education."
+    elif any(word in question_lower for word in ["travel", "journey", "trip"]):
+        sign = "9th"
+        significator = "Jupiter, Sun"
+        desc = "9th house indicates travel and journeys."
+    else:
+        sign = "1st"
+        significator = "Ascendant Lord"
+        desc = "Look at Ascendant and its lord for general matters."
+    
+    return {
+        "topic": "General Horary Analysis",
+        "key_house": sign,
+        "significators": significator,
+        "analysis": desc,
+        "ascendant_lord": asc_lord,
+        "moon_nakshatra": moon_nakshatra,
+        "verdict": f"Based on KP System: The {sign} house and {significator} are important. {desc} Moon is in {moon_nakshatra} ({moon_lord})."
+    }

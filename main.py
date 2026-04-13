@@ -136,3 +136,71 @@ async def get_muhurat(request: MuhuratRequest):
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+# KP Astrology Endpoints
+
+@app.post("/api/astrology/kp-chart")
+async def get_kp_chart(request: NatalChartRequest):
+    try:
+        result = astrology.calculate_kp_chart(request.birth_date, request.birth_time, request.latitude, request.longitude, request.timezone)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/astrology/kp-dasha")
+async def get_kp_dasha(request: NatalChartRequest):
+    try:
+        result = astrology.calculate_vimshottari_dasha(request.birth_date, request.birth_time, request.latitude, request.longitude, request.timezone)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+class HoraryRequest(BaseModel):
+    question: str
+    question_date: str
+    question_time: str
+    latitude: float
+    longitude: float
+
+@app.post("/api/astrology/kp-horary")
+async def get_kp_horary(request: HoraryRequest):
+    try:
+        result = astrology.calculate_horary_kp(request.question, request.question_date, request.question_time, request.latitude, request.longitude)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+# OpenAI Chat Endpoint
+import os
+
+class AIChatRequest(BaseModel):
+    message: str
+    birth_data: dict = None
+
+@app.post("/api/ai/chat")
+async def ai_chat(request: AIChatRequest):
+    try:
+        api_key = os.environ.get("OPENAI_API_KEY")
+        if not api_key:
+            return {"response": "AI not configured. Please set OPENAI_API_KEY in environment variables."}
+        
+        from openai import OpenAI
+        client = OpenAI(api_key=api_key)
+        
+        context = "You are a knowledgeable astrologer specializing in Vedic astrology, KP astrology, Numerology, and Tarot. Provide detailed, helpful readings."
+        
+        if request.birth_data:
+            context += f"\n\nUser's Birth Data: {request.birth_data}"
+        
+        response = client.chat.completions.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": context},
+                {"role": "user", "content": request.message}
+            ],
+            max_tokens=500
+        )
+        
+        return {"response": response.choices[0].message.content}
+    except Exception as e:
+        return {"response": f"AI Error: {str(e)}. Please check API key and try again."}
