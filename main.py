@@ -182,6 +182,9 @@ async def ai_chat(request: Request):
         if not api_key:
             return {"response": "AI not configured. Please set OPENAI_API_KEY in environment variables."}
         
+        if not api_key.startswith("sk-"):
+            return {"response": f"Invalid API key format. Key should start with 'sk-', got: {api_key[:20]}..."}
+        
         body = await request.json()
         from openai import OpenAI
         
@@ -203,4 +206,5 @@ async def ai_chat(request: Request):
         return {"response": response.choices[0].message.content}
         
     except Exception as e:
-        return {"response": f"AI Error: {str(e)}"}
+        import traceback
+        return {"response": f"AI Error: {str(e)}", "trace": traceback.format_exc()}
