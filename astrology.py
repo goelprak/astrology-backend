@@ -176,10 +176,14 @@ def generate_daily_horoscope(sign: str, date: datetime) -> Dict[str, Any]:
     import hashlib
     
     sign = sign.capitalize()
-    sign_index = ZODIAC_SIGNS.index(sign) if sign in ZODIAC_SIGNS else 0
+    if sign not in ZODIAC_SIGNS:
+        sign = "Aries"
     
-    sign_hash = int(hashlib.md5(sign.encode()).hexdigest()[:8], 16)
-    date_hash = int(hashlib.md5(f"{date.year}{date.month}{date.day}".encode()).hexdigest()[:8], 16)
+    sign_list = list(ZODIAC_SIGNS)
+    fixed_index = sign_list.index(sign)
+    
+    day_of_year = date.timetuple().tm_yday
+    index = (fixed_index + day_of_year) % 5
     
     horoscopes = {
         "Aries": [
@@ -270,23 +274,23 @@ def generate_daily_horoscope(sign: str, date: datetime) -> Dict[str, Any]:
     
     sign_list = list(ZODIAC_SIGNS)
     fixed_index = sign_list.index(sign) if sign in sign_list else 0
-    index = (fixed_index + date_hash + date.weekday()) % len(horoscopes.get(sign, horoscopes["Aries"]))
+    index = (fixed_index + day_of_year) % 5
     prediction = horoscopes.get(sign, horoscopes["Aries"])[index]
     
     luck_factors = {
-        "lucky_number": (sign_hash % 99) + 1,
-        "lucky_color": ["Red", "Blue", "Green", "Gold", "Purple", "Silver"][hash_val % 6],
-        "lucky_day": ["Monday", "Thursday", "Saturday"][hash_val % 3]
+        "lucky_number": (fixed_index * 7 + day_of_year) % 99 + 1,
+        "lucky_color": ["Red", "Blue", "Green", "Gold", "Purple", "Silver"][(fixed_index + day_of_year) % 6],
+        "lucky_day": ["Monday", "Thursday", "Saturday"][day_of_year % 3]
     }
     
     categories = ["Career", "Love", "Health", "Finance", "Social"]
-    category_index = (date_hash + fixed_index + date.weekday()) % 5
+    category_index = (fixed_index + day_of_year) % 5
     
     return {
         "sign": sign,
         "date": date.strftime("%Y-%m-%d"),
         "prediction": prediction,
-        "mood": ["Happy", "Energetic", "Calm", "Reflective", "Creative"][sign_hash % 5],
+        "mood": ["Happy", "Energetic", "Calm", "Reflective", "Creative"][(fixed_index + day_of_year) % 5],
         "lucky_number": luck_factors["lucky_number"],
         "lucky_color": luck_factors["lucky_color"],
         "lucky_day": luck_factors["lucky_day"],
