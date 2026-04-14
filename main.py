@@ -189,14 +189,15 @@ async def ai_chat(request: Request):
         try:
             data = json.loads(body_str)
         except json.JSONDecodeError as je:
-            import re
-            clean_body = body_str.encode('utf-8').decode('unicode_escape')
             try:
-                data = json.loads(clean_body)
+                data = json.loads(body_str.encode('ascii', 'replace').decode('utf-8', 'ignore'))
             except:
-                return {"response": f"JSON parse error: {str(je)}, body was: {repr(body_str)}"}
+                return {"response": f"JSON parse error: {str(je)}, body was: {repr(body_str[:100])}"}
         
         msg = data.get("message", "") if data else ""
+        
+        if not msg:
+            return {"response": "Please provide a message"}
         
         from openai import OpenAI
         client = OpenAI(api_key=api_key)

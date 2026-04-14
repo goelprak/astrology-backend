@@ -175,10 +175,11 @@ def calculate_compatibility(chart1: Dict, chart2: Dict) -> Dict[str, Any]:
 def generate_daily_horoscope(sign: str, date: datetime) -> Dict[str, Any]:
     import hashlib
     
+    sign = sign.capitalize()
     sign_index = ZODIAC_SIGNS.index(sign) if sign in ZODIAC_SIGNS else 0
     
-    seed = f"{sign}{date.year}{date.month}{date.day}"
-    hash_val = int(hashlib.md5(seed.encode()).hexdigest(), 16)
+    sign_hash = int(hashlib.md5(sign.encode()).hexdigest()[:8], 16)
+    date_hash = int(hashlib.md5(f"{date.year}{date.month}{date.day}".encode()).hexdigest()[:8], 16)
     
     horoscopes = {
         "Aries": [
@@ -267,23 +268,25 @@ def generate_daily_horoscope(sign: str, date: datetime) -> Dict[str, Any]:
         ]
     }
     
-    index = (hash_val % 5 + date.weekday()) % len(horoscopes.get(sign, horoscopes["Aries"]))
+    sign_list = list(ZODIAC_SIGNS)
+    fixed_index = sign_list.index(sign) if sign in sign_list else 0
+    index = (fixed_index + date_hash + date.weekday()) % len(horoscopes.get(sign, horoscopes["Aries"]))
     prediction = horoscopes.get(sign, horoscopes["Aries"])[index]
     
     luck_factors = {
-        "lucky_number": (hash_val % 99) + 1,
+        "lucky_number": (sign_hash % 99) + 1,
         "lucky_color": ["Red", "Blue", "Green", "Gold", "Purple", "Silver"][hash_val % 6],
         "lucky_day": ["Monday", "Thursday", "Saturday"][hash_val % 3]
     }
     
     categories = ["Career", "Love", "Health", "Finance", "Social"]
-    category_index = (hash_val % 5 + date.weekday()) % 5
+    category_index = (date_hash + fixed_index + date.weekday()) % 5
     
     return {
         "sign": sign,
         "date": date.strftime("%Y-%m-%d"),
         "prediction": prediction,
-        "mood": ["Happy", "Energetic", "Calm", "Reflective", "Creative"][hash_val % 5],
+        "mood": ["Happy", "Energetic", "Calm", "Reflective", "Creative"][sign_hash % 5],
         "lucky_number": luck_factors["lucky_number"],
         "lucky_color": luck_factors["lucky_color"],
         "lucky_day": luck_factors["lucky_day"],
