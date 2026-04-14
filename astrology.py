@@ -2,40 +2,6 @@ from datetime import datetime, timedelta
 from typing import Optional, Dict, List, Any
 import pytz
 import math
-import ephem
-
-def get_ephem_moon(jd: float, latitude: float, longitude: float) -> float:
-    """Get accurate Moon position using ephem"""
-    try:
-        dt = julian_day_to_datetime(jd)
-        moon = ephem.Moon(dt)
-        moon_pos = moon.a_ra  # Right ascension in radians
-        moon_dec = moon.a_dec  # Declination in radians
-        
-        # Convert RA to longitude (ecliptic)
-        # Approximate conversion
-        ra_degrees = math.degrees(moon_pos)
-        
-        # Get the ecliptic longitude
-        # Use the equation of time approximation
-        approx_longitude = (ra_degrees - 100) % 360
-        
-        return approx_longitude
-    except:
-        # Fallback to simple calculation
-        T = (jd - 2451545.0) / 36525.0
-        moon_mean_longitude = 218.3164477 + 481267.88123421 * T - 0.0015786 * T * T
-        moon_mean_anomaly = 134.9633964 + 477198.8675055 * T + 0.0087414 * T * T
-        moon_longitude = moon_mean_longitude + 6.289 * math.sin(math.radians(moon_mean_anomaly))
-        return moon_longitude % 360
-
-
-def julian_day_to_datetime(jd: float) -> datetime:
-    """Convert Julian Day to Python datetime"""
-    # This is approximate - ephem handles the conversion internally
-    dt = datetime(2000, 1, 1, 12, 0, 0)
-    days = jd - 2451545.0
-    return dt + timedelta(days=days)
 
 def sin_deg(degrees):
     return math.sin(math.radians(degrees))
@@ -476,7 +442,7 @@ def calculate_planet_positions(jd: float, latitude: float, longitude: float) -> 
     jupiter_mean_longitude = 34.351519 + 3034.9061279 * T + 0.000004 * T * T
     jupiter_mean_anomaly = 20.020187 + 0.0830853 * T + 0.000033 * T * T
     planets["Jupiter"] = (jupiter_mean_longitude + 5.555 * sin_deg(jupiter_mean_anomaly)) % 360
-    planets["Saturn"] = (saturn_mean_longitude + 5.102 * sin_rad(saturn_mean_anomaly * 3.14159265358979 / 180)) % 360
+    planets["Saturn"] = (saturn_mean_longitude + 5.102 * sin_deg(saturn_mean_anomaly)) % 360
     
     for name, mean_long in [
         ("Uranus", 96.661867 + 1919.2858945 * T),
