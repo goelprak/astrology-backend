@@ -173,7 +173,7 @@ async def get_kp_horary(request: HoraryRequest):
         raise HTTPException(status_code=500, detail=str(e))
 
 
-# OpenAI Chat Endpoint
+# Fix numerology calculations
 
 @app.post("/api/ai/chat")
 async def ai_chat(request: Request):
