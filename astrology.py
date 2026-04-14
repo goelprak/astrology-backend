@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 from typing import Optional, Dict, List, Any
 import pytz
 import math
@@ -404,27 +404,11 @@ def calculate_planet_positions(jd: float, latitude: float, longitude: float) -> 
     sun_true_longitude = (sun_mean_longitude + sun_equation_of_center) % 360
     planets["Sun"] = sun_true_longitude
     
-    # Moon - Use ephem for accuracy
-    try:
-        dt = julian_day_to_datetime(jd)
-        moon = ephem.Moon(dt)
-        # Get right ascension and convert to degrees
-        ra = math.degrees(moon.ra)  # Right ascension in degrees
-        dec = math.degrees(moon.dec)  # Declination in degrees
-        
-        # Convert RA/Dec to ecliptic longitude (simplified)
-        # Approximate: RA is roughly 100° ahead of ecliptic longitude
-        # This gets us close but not exact
-        moon_longitude = (ra + 180) % 360
-        
-        # Apply nutation and other corrections approximately
-        planets["Moon"] = moon_longitude
-    except Exception as e:
-        # Fallback to calculation without ephem
-        moon_mean_longitude = 218.3164477 + 481267.88123421 * T - 0.0015786 * T * T
-        moon_mean_anomaly = 134.9633964 + 477198.8675055 * T + 0.0087414 * T * T
-        moon_longitude = moon_mean_longitude + 6.289 * sin_deg(moon_mean_anomaly)
-        planets["Moon"] = moon_longitude % 360
+    # Moon calculation
+    moon_mean_longitude = 218.3164477 + 481267.88123421 * T - 0.0015786 * T * T
+    moon_mean_anomaly = 134.9633964 + 477198.8675055 * T + 0.0087414 * T * T
+    moon_longitude = moon_mean_longitude + 6.289 * sin_deg(moon_mean_anomaly)
+    planets["Moon"] = moon_longitude % 360
     
     # Other planets (simplified calculations)
     mercury_mean_longitude = 252.250905 + 149472.67411175 * T + 0.000160 * T * T
