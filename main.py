@@ -31,6 +31,14 @@ class MuhuratRequest(BaseModel):
     date: str
     city: str = "Delhi"
 
+class YearlyPredictionRequest(BaseModel):
+    birth_date: str
+    birth_time: str
+    latitude: float
+    longitude: float
+    timezone: str = "UTC"
+    years: int = 10
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -135,6 +143,18 @@ async def get_tarot(request: TarotRequest):
 async def get_muhurat(request: MuhuratRequest):
     try:
         result = astrology.calculate_muhurat(request.date, request.city)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/astrology/yearly-predictions")
+async def get_yearly_predictions(request: YearlyPredictionRequest):
+    try:
+        result = astrology.generate_yearly_predictions(
+            request.birth_date, request.birth_time,
+            request.latitude, request.longitude,
+            request.timezone, request.years
+        )
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
