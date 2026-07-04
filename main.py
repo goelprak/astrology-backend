@@ -178,9 +178,9 @@ async def get_kp_horary(request: HoraryRequest):
 @app.post("/api/ai/chat")
 async def ai_chat(request: Request):
     try:
-        api_key = os.environ.get("OPENAI_API_KEY")
+        api_key = os.environ.get("GEMINI_API_KEY")
         if not api_key:
-            return {"response": "AI not configured. Please set OPENAI_API_KEY in environment variables."}
+            return {"response": "AI not configured. Please set GEMINI_API_KEY in environment variables. Get a free key at https://aistudio.google.com/apikey"}
         
         body = await request.body()
         body_str = body.decode('utf-8')
@@ -199,21 +199,14 @@ async def ai_chat(request: Request):
         if not msg:
             return {"response": "Please provide a message"}
         
-        from openai import OpenAI
-        client = OpenAI(api_key=api_key)
-        
+        import google.generativeai as genai
+        genai.configure(api_key=api_key)
+        model = genai.GenerativeModel("gemini-2.0-flash")
         context = "You are a knowledgeable astrologer specializing in Vedic astrology, KP astrology, Numerology, and Tarot. Provide detailed, helpful readings."
         
-        response = client.chat.completions.create(
-            model="gpt-4o-mini",
-            messages=[
-                {"role": "system", "content": context},
-                {"role": "user", "content": msg}
-            ],
-            max_tokens=500
-        )
+        response = model.generate_content(f"{context}\n\nUser question: {msg}")
         
-        return {"response": response.choices[0].message.content}
+        return {"response": response.text}
         
     except Exception as e:
         import traceback
