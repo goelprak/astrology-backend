@@ -198,31 +198,25 @@ async def ai_chat(request: Request):
         if not msg:
             return {"response": "Please provide a message"}
         
-        import httpx
-        context = "You are a knowledgeable astrologer specializing in Vedic astrology, KP astrology, Numerology, and Tarot. Provide detailed, helpful readings."
-        prompt = f"{context}\n\nUser question: {msg}\n\nAnswer:"
+        from huggingface_hub import InferenceClient
         
-        headers = {"Authorization": f"Bearer {hf_token}"} if hf_token else {}
+        context = "You are a knowledgeable astrologer specializing in Vedic astrology, KP astrology, Numerology, and Tarot."
+        prompt = f"{context}\nUser: {msg}\nAssistant:"
         
-        async with httpx.AsyncClient(timeout=60.0) as client:
-            hf_response = await client.post(
-                "https://router.huggingface.co/hf-inference/models/google/flan-t5-large",
-                json={"inputs": prompt, "parameters": {"max_new_tokens": 400, "temperature": 0.7, "do_sample": True}},
-                headers=headers
-            )
-            
-            if hf_response.status_code == 200:
-                result = hf_response.json()
-                if isinstance(result, list) and len(result) > 0:
-                    text = result[0].get("generated_text", prompt)
-                    answer = text[len(prompt):].strip() if text.startswith(prompt) else text
-                    return {"response": answer or text}
-                return {"response": "Could not parse AI response"}
-            elif hf_response.status_code == 503:
-                return {"response": "AI model is loading, please try again in a few seconds."}
-            else:
-                error_detail = hf_response.text[:300]
-                return {"response": f"AI service error ({hf_response.status_code}): {error_detail}"}
+        client = InferenceClient(token=hf_token if hf_token else None, timeout=60)
+        result = client.text_generation(
+            prompt,
+            model="google/flan-t5-large",
+            max_new_tokens=400,
+            temperature=0.7,
+            do_sample=True
+        )
+        
+        if result:
+            text = str(result).strip()
+            answer = text[len(prompt):].strip() if text.startswith(prompt) else text
+            return {"response": answer or text}
+        return {"response": "AI did not return a response"}
         
     except Exception as e:
         import traceback
