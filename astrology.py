@@ -349,21 +349,20 @@ def calculate_ascendant(jd: float, latitude: float, longitude: float) -> float:
     
     omega = 125.0445479 - 1934.1362891 * T + 0.0020754 * T * T
     epsilon = 23.439291 - 0.0130042 * T - 0.00000016 * T * T + 0.000000504 * T * T * T
-    epsilon_rad = epsilon * 3.14159265358979 / 180
     
-    obliquity_correction = epsilon + 0.00256 * cos_rad(omega * 3.14159265358979 / 180)
-    obliquity_rad = obliquity_correction * 3.14159265358979 / 180
+    obliquity_correction = epsilon + 0.00256 * math.cos(math.radians(omega))
+    obliquity_rad = math.radians(obliquity_correction)
     
     GMST = 280.46061837 + 360.98564736629 * (jd - 2451545.0) + 0.000387933 * T * T - T * T * T / 38710000.0
     GMST = GMST % 360
     
     LST = (GMST + longitude) % 360
-    LST_rad = LST * 3.14159265358979 / 180
+    LST_rad = math.radians(LST)
     
-    tan_A = -cos_rad(LST_rad) / (sin_rad(LST_rad) * sin_rad(obliquity_rad) + tan(latitude * 3.14159265358979 / 180) * cos_rad(obliquity_rad))
-    A = atan_rad(tan_A)
+    tan_A = -math.cos(LST_rad) / (math.sin(LST_rad) * math.sin(obliquity_rad) + math.tan(math.radians(latitude)) * math.cos(obliquity_rad))
+    A = math.atan(tan_A)
     
-    asc = (A * 180 / 3.14159265358979 + 180) % 360
+    asc = (math.degrees(A) + 180) % 360
     return asc
 
 def calculate_midheaven(jd: float, longitude: float) -> float:
@@ -371,12 +370,6 @@ def calculate_midheaven(jd: float, longitude: float) -> float:
     
     L0 = 280.46646 + 36000.76983 * T + 0.0003032 * T * T
     L0 = L0 % 360
-    
-    omega = 125.0445479 - 1934.1362891 * T + 0.0020754 * T * T
-    epsilon = 23.439291 - 0.0130042 * T - 0.00000016 * T * T + 0.000000504 * T * T * T
-    
-    obliquity_correction = epsilon + 0.00256 * cos_rad(omega * 3.14159265358979 / 180)
-    obliquity_rad = obliquity_correction * 3.14159265358979 / 180
     
     GMST = 280.46061837 + 360.98564736629 * (jd - 2451545.0) + 0.000387933 * T * T - T * T * T / 38710000.0
     GMST = (GMST + longitude) % 360
@@ -404,10 +397,16 @@ def calculate_planet_positions(jd: float, latitude: float, longitude: float) -> 
     sun_true_longitude = (sun_mean_longitude + sun_equation_of_center) % 360
     planets["Sun"] = sun_true_longitude
     
-    # Moon calculation
+    # Moon calculation (improved with Evection, Variation, Yearly Equation)
     moon_mean_longitude = 218.3164477 + 481267.88123421 * T - 0.0015786 * T * T
     moon_mean_anomaly = 134.9633964 + 477198.8675055 * T + 0.0087414 * T * T
-    moon_longitude = moon_mean_longitude + 6.289 * sin_deg(moon_mean_anomaly)
+    moon_mean_elongation = (moon_mean_longitude - sun_mean_longitude) % 360  # D = Lm - Ls
+    
+    moon_longitude = (moon_mean_longitude
+        + 6.289 * sin_deg(moon_mean_anomaly)
+        + 1.274 * sin_deg(2 * moon_mean_elongation - moon_mean_anomaly)
+        + 0.658 * sin_deg(2 * moon_mean_elongation)
+        + 0.186 * sin_deg(sun_mean_anomaly))
     planets["Moon"] = moon_longitude % 360
     
     # Other planets (simplified calculations)
@@ -426,6 +425,8 @@ def calculate_planet_positions(jd: float, latitude: float, longitude: float) -> 
     jupiter_mean_longitude = 34.351519 + 3034.9061279 * T + 0.000004 * T * T
     jupiter_mean_anomaly = 20.020187 + 0.0830853 * T + 0.000033 * T * T
     planets["Jupiter"] = (jupiter_mean_longitude + 5.555 * sin_deg(jupiter_mean_anomaly)) % 360
+    saturn_mean_longitude = 50.077444 + 1222.1138488 * T
+    saturn_mean_anomaly = 317.386972 + 0.0339966 * T
     planets["Saturn"] = (saturn_mean_longitude + 5.102 * sin_deg(saturn_mean_anomaly)) % 360
     
     for name, mean_long in [
@@ -522,7 +523,7 @@ def calculate_numerology(name: str, birth_date: str) -> Dict[str, Any]:
     birth_parts = birth_date.split('-')
     day = int(birth_parts[2]) if len(birth_parts) > 2 else 1
     month = int(birth_parts[1]) if len(birth_parts) > 1 else 1
-    year = int(birth_parts[0]) if len(birth_parts) > 0 else 2000
+    birth_year = int(birth_parts[0]) if len(birth_parts) > 0 else 2000
     
     life_path = reduce_to_single(sum(int(c) for c in birth_digits))
     destiny = reduce_to_single(sum(name_values.get(c, 0) for c in name_digits))
@@ -532,9 +533,11 @@ def calculate_numerology(name: str, birth_date: str) -> Dict[str, Any]:
     
     maturity = reduce_to_single(life_path + destiny)
     
-    personal_year = reduce_to_single(sum(int(c) for c in str(year)) + month + day)
-    personal_month = reduce_to_single(personal_year + (datetime.now().month))
-    personal_day = reduce_to_single(personal_year + (datetime.now().day))
+    now = datetime.now()
+    current_year = now.year
+    personal_year = reduce_to_single(reduce_to_single(current_year) + month + day)
+    personal_month = reduce_to_single(personal_year + now.month)
+    personal_day = reduce_to_single(personal_year + now.day)
     
     name_sum = sum(name_values.get(c, 0) for c in name_digits)
     name_number = reduce_to_single(name_sum)
@@ -547,9 +550,10 @@ def calculate_numerology(name: str, birth_date: str) -> Dict[str, Any]:
     
     balance = reduce_to_single(name_values.get(name.upper().split()[0][0] if name.split() else 'A', 1))
     
+    birth_year_reduced = reduce_to_single(birth_year)
     challenge_1 = reduce_to_single(abs(day - month))
-    challenge_2 = reduce_to_single(abs(day - year % 100))
-    challenge_3 = reduce_to_single(abs(month - year % 100))
+    challenge_2 = reduce_to_single(abs(day - birth_year_reduced))
+    challenge_3 = reduce_to_single(abs(month - birth_year_reduced))
     challenge_4 = reduce_to_single(challenge_1 + challenge_3)
     
     name_parts = name.upper().split()
