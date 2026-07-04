@@ -409,32 +409,51 @@ def calculate_planet_positions(jd: float, latitude: float, longitude: float) -> 
         + 0.186 * sin_deg(sun_mean_anomaly))
     planets["Moon"] = moon_longitude % 360
     
-    # Other planets (simplified calculations)
-    mercury_mean_longitude = 252.250905 + 149472.67411175 * T + 0.000160 * T * T
-    mercury_mean_anomaly = 174.794864 + 4.0923349 * T
-    planets["Mercury"] = (mercury_mean_longitude + 0.083 * sin_deg(mercury_mean_anomaly)) % 360
+    # ===== Heliocentric-to-Geocentric conversion for planets =====
+    # Earth heliocentric position (from Sun calculation)
+    earth_mean_anomaly = sun_mean_anomaly
+    earth_ecc = 0.01671
+    earth_C = (2 * earth_ecc) * (180 / math.pi) * sin_deg(earth_mean_anomaly) \
+            + 1.25 * earth_ecc**2 * (180 / math.pi) * sin_deg(2 * earth_mean_anomaly)
+    earth_true_anomaly = earth_mean_anomaly + earth_C
+    # Earth heliocentric true longitude = Sun geocentric longitude + 180 deg
+    earth_helio_long = (sun_true_longitude + 180) % 360
+    earth_r = 1.00000 * (1 - earth_ecc**2) / (1 + earth_ecc * cos_deg(earth_true_anomaly))
+    earth_x = earth_r * cos_deg(earth_helio_long)
+    earth_y = earth_r * sin_deg(earth_helio_long)
     
-    venus_mean_longitude = 181.979801 + 58517.8156760 * T + 0.000001 * T * T
-    venus_mean_anomaly = 50.115444 + 1.3921973 * T
-    planets["Venus"] = (venus_mean_longitude + 0.723 * sin_deg(venus_mean_anomaly)) % 360
+    # Planet data: (mean_longitude_formula, a_in_AU, eccentricity, perihelion_longitude)
+    planet_data = [
+        ("Mercury", 252.250905 + 149472.67411175 * T + 0.000160 * T * T,
+         0.38710, 0.20563, 77.4578 + 0.0444 * T),
+        ("Venus", 181.979801 + 58517.8156760 * T + 0.000001 * T * T,
+         0.72333, 0.00677, 131.564 + 0.0055 * T),
+        ("Mars", 355.433275 + 19140.2993313 * T + 0.000001 * T * T,
+         1.52368, 0.09340, 336.060 + 0.444 * T),
+        ("Jupiter", 34.351519 + 3034.9061279 * T + 0.000004 * T * T,
+         5.20260, 0.04839, 14.331 + 0.023 * T),
+        ("Saturn", 50.077444 + 1222.1138488 * T,
+         9.55491, 0.05386, 93.057 + 0.018 * T),
+        ("Uranus", 314.055 + 428.466 * T,
+         19.21845, 0.04570, 173.287 + 0.001 * T),
+        ("Neptune", 304.365 + 218.487 * T,
+         30.11039, 0.00859, 43.917 + 0.001 * T),
+        ("Pluto", 238.957 + 145.0 * T,
+         39.543, 0.24881, 224.066),
+    ]
     
-    mars_mean_longitude = 355.433275 + 19140.2993313 * T + 0.000001 * T * T
-    mars_mean_anomaly = 19.412419 + 0.5240211 * T
-    planets["Mars"] = (mars_mean_longitude + 0.631 * sin_deg(mars_mean_anomaly)) % 360
-    
-    jupiter_mean_longitude = 34.351519 + 3034.9061279 * T + 0.000004 * T * T
-    jupiter_mean_anomaly = 20.020187 + 0.0830853 * T + 0.000033 * T * T
-    planets["Jupiter"] = (jupiter_mean_longitude + 5.555 * sin_deg(jupiter_mean_anomaly)) % 360
-    saturn_mean_longitude = 50.077444 + 1222.1138488 * T
-    saturn_mean_anomaly = 317.386972 + 0.0339966 * T
-    planets["Saturn"] = (saturn_mean_longitude + 5.102 * sin_deg(saturn_mean_anomaly)) % 360
-    
-    for name, mean_long in [
-        ("Uranus", 96.661867 + 1919.2858945 * T),
-        ("Neptune", 173.005615 + 841.3301066 * T),
-        ("Pluto", 238.956785 + 144.96 * T)
-    ]:
-        planets[name] = mean_long % 360
+    for name, L, a_p, e_p, peri_p in planet_data:
+        M_p = (L - peri_p) % 360
+        C1_p = (2 * e_p - e_p**3 / 4) * (180 / math.pi)
+        C2_p = 1.25 * e_p**2 * (180 / math.pi)
+        C_p = C1_p * sin_deg(M_p) + C2_p * sin_deg(2 * M_p)
+        true_anom_p = M_p + C_p
+        true_long_p = (peri_p + true_anom_p) % 360
+        r_p = a_p * (1 - e_p**2) / (1 + e_p * cos_deg(true_anom_p))
+        p_x = r_p * cos_deg(true_long_p)
+        p_y = r_p * sin_deg(true_long_p)
+        geo_lon = (math.degrees(math.atan2(p_y - earth_y, p_x - earth_x)) + 360) % 360
+        planets[name] = geo_lon
     
     north_node_mean = 125.0445479 - 1934.1362891 * T
     planets["North Node"] = north_node_mean % 360
