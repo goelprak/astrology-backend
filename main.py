@@ -308,6 +308,7 @@ async def ai_chat(request: Request):
 
         msg = data.get("message", "") if data else ""
         birth_data = data.get("birth_data", None) if data else None
+        tab_context = data.get("tab_context", {}) if data else {}
 
         if not msg:
             return {"response": "Please provide a message"}
@@ -333,6 +334,88 @@ async def ai_chat(request: Request):
                             return {"response": personalized}
             except Exception as e:
                 return {"response": f"I have your birth details but encountered an issue computing your chart: {str(e)}. I can still answer general questions for you."}
+
+        # Tab context based responses - AI knows what user just looked at
+        if tab_context:
+            tarot = tab_context.get("tarot")
+            if tarot and tarot.get("cards"):
+                cards = tarot["cards"]
+                if any(w in msg_lower for w in ["first card", "card 1", "card one", "card #1"]):
+                    c = cards[0]
+                    return {"response": f"The first card in your reading is {c.get('name', 'Unknown')}. In the {c.get('position', '?')} position, it represents: {c.get('meaning', 'A meaningful card')}. The advice from this card: {c.get('advice', 'Trust your inner wisdom')}. This card sets the foundation for your reading and addresses the core energy around your question."}
+                if any(w in msg_lower for w in ["second card", "card 2", "card two", "card #2"]):
+                    c = cards[1] if len(cards) > 1 else cards[0]
+                    return {"response": f"The second card is {c.get('name', 'Unknown')} in the {c.get('position', '?')} position. Meaning: {c.get('meaning', 'A card of significance')}. Advice: {c.get('advice', 'Pay attention to the signs')}. This card represents the challenges or opportunities you need to navigate."}
+                if any(w in msg_lower for w in ["third card", "card 3", "card three", "card #3"]):
+                    c = cards[2] if len(cards) > 2 else cards[-1]
+                    return {"response": f"The third card is {c.get('name', 'Unknown')} in the {c.get('position', '?')} position. Meaning: {c.get('meaning', 'A guiding message')}. Advice: {c.get('advice', 'Look forward with hope')}. This card reveals the likely outcome or guidance for moving forward."}
+                if len(cards) >= 4 and any(w in msg_lower for w in ["fourth card", "card 4", "card four", "card #4"]):
+                    c = cards[3]
+                    return {"response": f"The fourth card is {c.get('name', 'Unknown')} in the {c.get('position', '?')} position. Meaning: {c.get('meaning', 'Additional insight')}. Advice: {c.get('advice', 'Integrate this wisdom')}."}
+                if any(w in msg_lower for w in ["all card", "all three", "all tarot", "explain the reading", "what do these cards mean", "tell me about this reading", "my cards", "my tarot", "this reading", "the spread"]):
+                    q = tarot.get("question", "Not specified")
+                    descs = "; ".join([f"{c.get('name', '?')} ({c.get('position','?')}): {c.get('meaning', '?')}" for c in cards])
+                    return {"response": f"Here is your complete tarot reading interpretation. Your question was: \"{q}\". Cards drawn: {descs}. Overall summary: {tarot.get('summary', 'Your cards reveal meaningful guidance')}. Guidance: {tarot.get('guidance', 'Trust the journey')}. Each card's position in the spread tells part of your story — together they paint a picture of your current situation, the forces at play, and the path ahead."}
+
+            hor = tab_context.get("horoscope")
+            if hor and any(w in msg_lower for w in ["my horoscope", "today's prediction", "today horoscope", "daily horoscope", "what does today", "my daily", "explain my horoscope"]):
+                return {"response": f"Your daily horoscope for {hor.get('sign', 'your sign')} on {hor.get('date', 'today')}: {hor.get('prediction', 'A day of potential and growth')}. Your mood: {hor.get('mood', 'Balanced')}. Lucky number: {hor.get('lucky_number', '?')}. Lucky color: {hor.get('lucky_color', '?')}. Lucky day: {hor.get('lucky_day', '?')}. Focus area: {hor.get('focus_area', 'Personal growth')}. This prediction is based on the current lunar transit and how it aspects your Sun sign."}
+
+            wk = tab_context.get("weekly")
+            if wk and any(w in msg_lower for w in ["my weekly", "this week", "weekly horoscope", "week ahead", "explain my week"]):
+                return {"response": f"Your weekly horoscope for {wk.get('sign', 'your sign')}\n💕 Love: {wk.get('love', 'A week for connection')}\n💼 Career: {wk.get('career', 'Professional growth indicated')}\n❤️ Health: {wk.get('health', 'Focus on wellbeing')}\n💰 Finance: {wk.get('finance', 'Financial stability')}\nWeekly advice: {wk.get('advice', 'Trust your path')}\nLucky color: {wk.get('lucky_color', '?')}, Lucky number: {wk.get('lucky_number', '?')}\nWeek rating: {wk.get('rating', '?')}/10"}
+
+            mo = tab_context.get("monthly")
+            if mo and any(w in msg_lower for w in ["my monthly", "this month", "monthly horoscope", "month ahead", "explain my month"]):
+                return {"response": f"Your monthly horoscope for {mo.get('sign', 'your sign')} — {mo.get('month', '?')}/{mo.get('year', '?')}\nTheme: {mo.get('theme', 'A month of growth')}\n💼 Career: {mo.get('career', 'Career developments ahead')}\n💕 Love: {mo.get('love', 'Relationship insights')}\n💰 Finance: {mo.get('finance', 'Financial outlook')}\n❤️ Health: {mo.get('health', 'Health guidance')}\nHighlights: {mo.get('highlights', 'Positive developments')}\nChallenges: {mo.get('challenges', 'Areas requiring attention')}\nSpirit animal: {mo.get('spirit_animal', '?')}\nLucky days: {mo.get('lucky_days', '?')}\nRating: {mo.get('rating', '?')}/10"}
+
+            num = tab_context.get("numerology")
+            if num:
+                if any(w in msg_lower for w in ["my life path", "explain my life path", "life path number", "what is my life path"]):
+                    return {"response": f"Your Life Path Number is {num.get('life_path', '?')}. This is your primary numerology number, calculated from your full birth date. It represents your life's purpose, the journey you're meant to take, and the lessons you'll encounter along the way. It's the most significant number in your numerology chart and shapes your overall life direction."}
+                if any(w in msg_lower for w in ["my destiny", "destiny number", "my expression", "expression number"]):
+                    return {"response": f"Your Destiny (Expression) Number is {num.get('destiny', '?')}. Calculated from your full birth name, this number reveals your natural talents, abilities, and the goals you're meant to achieve in this lifetime. It represents the potential you're working to fulfill."}
+                if any(w in msg_lower for w in ["my soul urge", "soul urge", "heart's desire", "my heart desire"]):
+                    return {"response": f"Your Soul Urge (Heart's Desire) Number is {num.get('soul_urge', '?')}. Derived from the vowels in your name, this number reveals your innermost desires, what truly motivates you, and what your soul deeply craves for fulfillment."}
+                if any(w in msg_lower for w in ["my personality", "personality number"]):
+                    return {"response": f"Your Personality Number is {num.get('personality', '?')}. Based on the consonants in your name, this number shows how others perceive you — the outer persona you present to the world. It's the first impression you make."}
+                if any(w in msg_lower for w in ["my personal year", "personal year", "my year number", "this year for me"]):
+                    return {"response": f"Your Personal Year Number is {num.get('personal_year', '?')}. This number changes every year (calculated from your birth month/day + current year) and reveals the theme, lessons, and opportunities for your current year. It guides you on what energy to work with for this 12-month cycle."}
+                if any(w in msg_lower for w in ["my numbers", "my numerology", "tell me about my numerolog", "explain my number"]):
+                    return {"response": f"Here is your complete numerology profile:\nLife Path {num.get('life_path', '?')} (your life journey)\nDestiny {num.get('destiny', '?')} (your purpose)\nSoul Urge {num.get('soul_urge', '?')} (inner desires)\nPersonality {num.get('personality', '?')} (outer persona)\nPersonal Year {num.get('personal_year', '?')} (current theme)\nBirth Day {num.get('birth_day', '?')} (your natural gift). These numbers together create a comprehensive picture of your numerological blueprint."}
+
+            yr = tab_context.get("yearly")
+            if yr and yr.get("predictions"):
+                preds = yr["predictions"]
+                year_match = None
+                import re
+                for y in range(2020, 2100):
+                    if str(y) in msg_lower:
+                        for p in preds:
+                            if p.get("year") == y:
+                                year_match = p
+                                break
+                        break
+                if year_match:
+                    return {"response": f"Prediction for {year_match.get('year', '?')} (age {year_match.get('age', '?')}):\nMahadasha: {year_match.get('mahadasha', '?')}\nAntardasha: {year_match.get('antardasha', '?')}\nOverall theme: {year_match.get('overall_theme', 'A year of growth')}\n💼 Career: {year_match.get('career_prediction', 'Professional developments')}\n❤️ Love: {year_match.get('love_prediction', 'Relationship insights')}\n💰 Finance: {year_match.get('finance_prediction', 'Financial outlook')}\n🏥 Health: {year_match.get('health_prediction', 'Health guidance')}\nRating: {year_match.get('rating', '?')}/10"}
+                if any(w in msg_lower for w in ["my prediction", "my future", "my 10 year", "what will happen", "future prediction", "dasha predictions"]):
+                    return {"response": f"Your 10-year predictions are available in the 10-Year Predictions tab. The current year's Mahadasha is {preds[0].get('mahadasha', '?')} with {preds[0].get('antardasha', '?')} Antardasha. Your chart shows {yr.get('chart_summary', {}).get('sun_sign', '?')} Sun, {yr.get('chart_summary', {}).get('moon_sign', '?')} Moon, {yr.get('chart_summary', {}).get('rising_sign', '?')} Rising. Ask about a specific year (e.g., 'What happens in 2027?') for detailed predictions."}
+
+            da = tab_context.get("detailed_analysis")
+            if da:
+                if any(w in msg_lower for w in ["my strength", "my weakness", "strength and weakness", "what am i good at"]):
+                    strs = da.get("strengths", [])
+                    chals = da.get("challenges", [])
+                    return {"response": f"Your birth chart reveals these key strengths: {'; '.join(strs) if strs else 'Natural talents across multiple areas'}. Areas for growth: {'; '.join(chals) if chals else 'Balanced energy overall'}. Your Sun in {da.get('sun_sign', '?')} gives you your core drive, while your Moon in {da.get('moon_sign', '?')} shapes your emotional nature."}
+                if any(w in msg_lower for w in ["my career", "my job", "career for me", "what should i do for work", "my profession"]):
+                    car = da.get("career", [])
+                    return {"response": f"Your career insights based on your chart: {'; '.join(car) if car else 'Multiple career paths suit your chart'}. Your Sun in {da.get('sun_sign', '?')} indicates natural leadership qualities, and your 10th house ruler further shapes your professional path."}
+                if any(w in msg_lower for w in ["my love", "my relationship", "love life", "compatibility"]):
+                    rel = da.get("relationships", [])
+                    return {"response": f"Love and relationship insights from your chart: {'; '.join(rel) if rel else 'Meaningful partnerships indicated'}. Venus and 7th house placements play key roles in your relationship dynamics."}
+                if any(w in msg_lower for w in ["my health", "my body", "health for me", "wellness"]):
+                    hea = da.get("health", [])
+                    return {"response": f"Health insights from your chart: {'; '.join(hea) if hea else 'Balance is key for your wellbeing'}. Your chart indicates areas to focus on for optimal wellness."}
 
         greetings = ["hi", "hello", "hey", "namaste", "good morning", "good evening", "good afternoon"]
         if any(g in msg_lower for g in greetings):
