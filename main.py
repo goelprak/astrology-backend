@@ -204,9 +204,9 @@ async def ai_chat(request: Request):
         
         headers = {"Authorization": f"Bearer {hf_token}"} if hf_token else {}
         
-        async with httpx.AsyncClient(timeout=30.0) as client:
+        async with httpx.AsyncClient(timeout=60.0) as client:
             hf_response = await client.post(
-                "https://api-inference.huggingface.co/models/microsoft/Phi-3-mini-4k-instruct",
+                "https://router.huggingface.co/hf-inference/models/microsoft/Phi-3-mini-4k-instruct",
                 json={"inputs": prompt, "parameters": {"max_new_tokens": 600, "temperature": 0.7, "do_sample": True}},
                 headers=headers
             )
