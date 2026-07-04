@@ -190,7 +190,8 @@ async def ai_chat(request: Request):
             try:
                 data = json.loads(body_str.encode('ascii', 'replace').decode('utf-8', 'ignore'))
             except:
-                return {"response": f"JSON parse error: {str(je)}, body was: {repr(body_str[:100]})"}
+                body_preview = repr(body_str[:100])
+                return {"response": f"JSON parse error: {str(je)}, body was: {body_preview}"}
         
         msg = data.get("message", "") if data else ""
         
