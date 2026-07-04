@@ -298,20 +298,21 @@ async def ai_chat(request: Request):
 
         is_personal = has_birth and any(w in msg_lower for w in [" my ", " me ", " mine ", "i am", "i'm", "am i", "do i", "tell me about my", "for me", "my " + msg_lower.split()[0] if len(msg_lower.split()) > 0 else ""])
 
-        if has_birth and is_personal:
+        if has_birth:
             try:
                 bd = birth_data
-                chart = astrology.calculate_natal_chart(bd["birthDate"], bd["birthTime"], float(bd.get("latitude", 28.6139)), float(bd.get("longitude", 77.209)), bd.get("timezone", "Asia/Kolkata"))
-                if "error" not in chart:
-                    chart["birth_date"] = bd["birthDate"]
-                    chart["birth_time"] = bd["birthTime"]
-                    chart["latitude"] = float(bd.get("latitude", 28.6139))
-                    chart["longitude"] = float(bd.get("longitude", 77.209))
-                    personalized = build_personalized_response(msg_lower, chart, bd.get("name", ""))
-                    if personalized:
-                        return {"response": personalized}
+                if bd.get("birthDate") and bd.get("birthTime"):
+                    chart = astrology.calculate_natal_chart(bd["birthDate"], bd["birthTime"], float(bd.get("latitude", 28.6139)), float(bd.get("longitude", 77.209)), bd.get("timezone", "Asia/Kolkata"))
+                    if "error" not in chart:
+                        chart["birth_date"] = bd["birthDate"]
+                        chart["birth_time"] = bd["birthTime"]
+                        chart["latitude"] = float(bd.get("latitude", 28.6139))
+                        chart["longitude"] = float(bd.get("longitude", 77.209))
+                        personalized = build_personalized_response(msg_lower, chart, bd.get("name", ""))
+                        if personalized:
+                            return {"response": personalized}
             except Exception as e:
-                pass
+                return {"response": f"I have your birth details but encountered an issue computing your chart: {str(e)}. I can still answer general questions for you."}
 
         greetings = ["hi", "hello", "hey", "namaste", "good morning", "good evening", "good afternoon"]
         if any(g in msg_lower for g in greetings):
