@@ -200,30 +200,28 @@ async def ai_chat(request: Request):
         
         import httpx
         context = "You are a knowledgeable astrologer specializing in Vedic astrology, KP astrology, Numerology, and Tarot. Provide detailed, helpful readings."
-        prompt = f"<|system|>{context}</s><|user|>{msg}</s><|assistant|>"
+        prompt = f"{context}\n\nUser question: {msg}\n\nAnswer:"
         
         headers = {"Authorization": f"Bearer {hf_token}"} if hf_token else {}
         
         async with httpx.AsyncClient(timeout=60.0) as client:
             hf_response = await client.post(
-                "https://router.huggingface.co/hf-inference/models/microsoft/Phi-3-mini-4k-instruct",
-                json={"inputs": prompt, "parameters": {"max_new_tokens": 600, "temperature": 0.7, "do_sample": True}},
+                "https://router.huggingface.co/hf-inference/models/google/flan-t5-large",
+                json={"inputs": prompt, "parameters": {"max_new_tokens": 400, "temperature": 0.7, "do_sample": True}},
                 headers=headers
             )
             
             if hf_response.status_code == 200:
                 result = hf_response.json()
                 if isinstance(result, list) and len(result) > 0:
-                    text = result[0].get("generated_text", "")
-                    # Extract just the assistant's reply
-                    if "<|assistant|>" in text:
-                        text = text.split("<|assistant|>")[-1].strip()
-                    return {"response": text}
+                    text = result[0].get("generated_text", prompt)
+                    answer = text[len(prompt):].strip() if text.startswith(prompt) else text
+                    return {"response": answer or text}
                 return {"response": "Could not parse AI response"}
             elif hf_response.status_code == 503:
                 return {"response": "AI model is loading, please try again in a few seconds."}
             else:
-                error_detail = hf_response.text[:500]
+                error_detail = hf_response.text[:300]
                 return {"response": f"AI service error ({hf_response.status_code}): {error_detail}"}
         
     except Exception as e:
