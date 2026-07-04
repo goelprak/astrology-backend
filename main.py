@@ -178,9 +178,7 @@ async def get_kp_horary(request: HoraryRequest):
 @app.post("/api/ai/chat")
 async def ai_chat(request: Request):
     try:
-        api_key = os.environ.get("GEMINI_API_KEY")
-        if not api_key:
-            return {"response": "AI not configured. Please set GEMINI_API_KEY in environment variables. Get a free key at https://aistudio.google.com/apikey"}
+        hf_token = os.environ.get("HF_TOKEN", "")
         
         body = await request.body()
         body_str = body.decode('utf-8')
@@ -192,21 +190,40 @@ async def ai_chat(request: Request):
             try:
                 data = json.loads(body_str.encode('ascii', 'replace').decode('utf-8', 'ignore'))
             except:
-                return {"response": f"JSON parse error: {str(je)}, body was: {repr(body_str[:100])}"}
+                return {"response": f"JSON parse error: {str(je)}, body was: {repr(body_str[:100]})"}
         
         msg = data.get("message", "") if data else ""
         
         if not msg:
             return {"response": "Please provide a message"}
         
-        import google.generativeai as genai
-        genai.configure(api_key=api_key)
-        model = genai.GenerativeModel("gemini-2.0-flash")
+        import httpx
         context = "You are a knowledgeable astrologer specializing in Vedic astrology, KP astrology, Numerology, and Tarot. Provide detailed, helpful readings."
+        prompt = f"<|system|>{context}</s><|user|>{msg}</s><|assistant|>"
         
-        response = model.generate_content(f"{context}\n\nUser question: {msg}")
+        headers = {"Authorization": f"Bearer {hf_token}"} if hf_token else {}
         
-        return {"response": response.text}
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            hf_response = await client.post(
+                "https://api-inference.huggingface.co/models/microsoft/Phi-3-mini-4k-instruct",
+                json={"inputs": prompt, "parameters": {"max_new_tokens": 600, "temperature": 0.7, "do_sample": True}},
+                headers=headers
+            )
+            
+            if hf_response.status_code == 200:
+                result = hf_response.json()
+                if isinstance(result, list) and len(result) > 0:
+                    text = result[0].get("generated_text", "")
+                    # Extract just the assistant's reply
+                    if "<|assistant|>" in text:
+                        text = text.split("<|assistant|>")[-1].strip()
+                    return {"response": text}
+                return {"response": "Could not parse AI response"}
+            elif hf_response.status_code == 503:
+                return {"response": "AI model is loading, please try again in a few seconds."}
+            else:
+                error_detail = hf_response.text[:500]
+                return {"response": f"AI service error ({hf_response.status_code}): {error_detail}"}
         
     except Exception as e:
         import traceback
