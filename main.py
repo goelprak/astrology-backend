@@ -38,9 +38,6 @@ class NavamsaRequest(BaseModel):
     longitude: float
     timezone: str = "Asia/Kolkata"
 
-class FestivalRequest(BaseModel):
-    year: int = 2026
-
 class NameCorrectionRequest(BaseModel):
     name: str
     birth_date: str = ""
@@ -289,14 +286,6 @@ async def get_manglik(request: ManglikRequest):
 async def get_navamsa_chart(request: NavamsaRequest):
     try:
         result = astrology.calculate_navamsa_chart(request.birth_date, request.birth_time, request.latitude, request.longitude, request.timezone)
-        return result
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.post("/api/astrology/festival-calendar")
-async def get_festival_calendar(request: FestivalRequest):
-    try:
-        result = astrology.calculate_festival_calendar(request.year)
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

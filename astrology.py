@@ -2477,12 +2477,15 @@ def calculate_panchang(date_str: str, latitude: float, longitude: float) -> Dict
     moon_deg = positions.get("Moon", 0)
 
     tithi_index = int(((moon_deg - sun_deg) % 360) // 12)
+    tithi_num = tithi_index % 15
+    paksha = "Shukla" if tithi_index < 15 else "Krishna"
     tithi_names = [
         "Pratipada", "Dwitiya", "Tritiya", "Chaturthi", "Panchami",
         "Shashthi", "Saptami", "Ashtami", "Navami", "Dashami",
-        "Ekadashi", "Dwadashi", "Trayodashi", "Chaturdashi", "Purnima/Amavasya"
+        "Ekadashi", "Dwadashi", "Trayodashi", "Chaturdashi", "Purnima"
     ]
-    tithi_name = tithi_names[tithi_index] if tithi_index < len(tithi_names) else "Unknown"
+    tithi_base = tithi_names[tithi_num]
+    tithi_name = "Amavasya" if tithi_index == 29 else tithi_base
 
     yoga_index = int(((moon_deg + sun_deg) % 360) // 13.333) % 27
     yoga_names = [
@@ -2514,7 +2517,7 @@ def calculate_panchang(date_str: str, latitude: float, longitude: float) -> Dict
     tithi_end_hour = (tithi_start_hour + 0.8) % 24
 
     return {
-        "tithi": {"name": tithi_name, "index": tithi_index + 1, "description": f"Tithi is {tithi_name} - the {tithi_index + 1}{'st' if tithi_index == 0 else 'nd' if tithi_index == 1 else 'rd' if tithi_index == 2 else 'th'} lunar phase", "start_time": f"{int(tithi_start_hour):02d}:{int((tithi_start_hour % 1) * 60):02d}", "end_time": f"{int(tithi_end_hour):02d}:{int((tithi_end_hour % 1) * 60):02d}"},
+        "tithi": {"name": tithi_name, "index": tithi_index + 1, "description": f"{tithi_name} ({paksha} Paksha) - day {tithi_index + 1} of lunar month", "start_time": f"{int(tithi_start_hour):02d}:{int((tithi_start_hour % 1) * 60):02d}", "end_time": f"{int(tithi_end_hour):02d}:{int((tithi_end_hour % 1) * 60):02d}"},
         "yoga": {"name": yoga_name, "index": yoga_index + 1, "description": f"Yoga is {yoga_name} - the {yoga_index + 1}{'st' if yoga_index == 0 else 'nd' if yoga_index == 1 else 'rd' if yoga_index == 2 else 'th'} of 27 yogas"},
         "karana": {"name": karana_name, "index": karana_index + 1, "description": f"Karana is {karana_name}"},
         "abhijit_muhurat": f"{int(abhijit_start):02d}:{int((abhijit_start % 1) * 60):02d} - {int(abhijit_end):02d}:{int((abhijit_end % 1) * 60):02d}",
@@ -2822,78 +2825,6 @@ def calculate_navamsa_chart(birth_date: str, birth_time: str, latitude: float, l
     return {
         "planets_in_navamsa": planets_in_navamsa,
         "houses_in_navamsa": houses_in_navamsa
-    }
-
-def calculate_festival_calendar(year: int) -> Dict[str, str]:
-    import math as _fm
-    def approx_moon_day(y, m, d):
-        jd = datetime_to_julian_day(datetime(y, m, d, 12, 0, 0))
-        t = (jd - 2451545.0) / 36525.0
-        moon_long = (218.3164477 + 481267.88123421 * t - 0.0015786 * t * t) % 360
-        sun_long = (280.46646 + 36000.76983 * t + 0.0003032 * t * t) % 360
-        return ((moon_long - sun_long) % 360) / 12
-
-    def find_tithi_date(y, m, target_tithi):
-        for d in range(1, 32):
-            try:
-                t = approx_moon_day(y, m, d)
-                if int(t) % 15 == target_tithi % 15:
-                    return f"{y}-{m:02d}-{d:02d}"
-            except:
-                pass
-        return f"{y}-{m:02d}-15"
-
-    diwali = find_tithi_date(year, 10, 15) if int(approx_moon_day(year, 10, 1)) >= 8 else find_tithi_date(year, 11, 15)
-    holi = find_tithi_date(year, 3, 14)
-    navratri_spring_start = find_tithi_date(year, 4, 1)
-    navratri_autumn_start = find_tithi_date(year, 10, 1)
-    raksha_bandhan = find_tithi_date(year, 8, 14)
-    janmashtami = find_tithi_date(year, 8, 8) if int(approx_moon_day(year, 8, 1)) < 8 else find_tithi_date(year, 9, 8)
-    ganesh_chaturthi = find_tithi_date(year, 9, 4)
-    mahashivratri = find_tithi_date(year, 2, 14) if int(approx_moon_day(year, 2, 1)) >= 8 else find_tithi_date(year, 3, 14)
-    karva_chauth = find_tithi_date(year, 10, 18)
-
-    purnima_dates = []
-    amavasya_dates = []
-    for m in range(1, 13):
-        for d in [1, 15, 30]:
-            try:
-                t = approx_moon_day(year, m, d)
-                ti = int(t) % 15
-                if ti == 14:
-                    purnima_dates.append(f"{year}-{m:02d}-{d:02d}")
-                elif ti == 0:
-                    amavasya_dates.append(f"{year}-{m:02d}-{d:02d}")
-            except:
-                pass
-
-    ekadashi_dates = []
-    for m in range(1, 13):
-        for d in [1, 16]:
-            try:
-                t = approx_moon_day(year, m, d)
-                ti = int(t) % 15
-                if ti == 11:
-                    ekadashi_dates.append(f"{year}-{m:02d}-{d:02d}")
-            except:
-                pass
-
-    return {
-        "diwali": diwali,
-        "holi": holi,
-        "navratri_spring": navratri_spring_start,
-        "navratri_autumn": navratri_autumn_start,
-        "dussehra": f"{year}-10-{int(find_tithi_date(year, 10, 10)[-2:]):02d}" if find_tithi_date(year, 10, 10) else f"{year}-10-15",
-        "raksha_bandhan": raksha_bandhan,
-        "janmashtami": janmashtami,
-        "ganesh_chaturthi": ganesh_chaturthi,
-        "mahashivratri": mahashivratri,
-        "makar_sankranti": f"{year}-01-14",
-        "pongal": f"{year}-01-14",
-        "karva_chauth": karva_chauth,
-        "purnima_dates": purnima_dates[:6],
-        "amavasya_dates": amavasya_dates[:6],
-        "ekadashi_dates": ekadashi_dates[:6]
     }
 
 def calculate_name_correction(name: str, birth_date: str) -> Dict[str, Any]:
