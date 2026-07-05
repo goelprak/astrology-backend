@@ -369,7 +369,7 @@ def build_personalized_response(msg_lower, chart, name):
             planets_str = "; ".join([f"{p}: {d.get('sign', '?')} {d.get('degree', 0):.1f}°" for p, d in planets.items()])
             return f"{nname}, here is your birth chart analysis. Your Sun sign is {sun} (identity, ego, life purpose). Your Moon sign is {moon} (emotions, subconscious, inner self). Your Ascendant/Rising sign is {asc} (outward personality, how others see you). Planetary positions: {planets_str}. {analysis.get('summary', '')}"
 
-        if any(w in msg_lower for w in ["my career", "my job", "my profession", "career for me", "what should i do for work", "will i get promoted", "promotion", "job change", "career growth", "professional", "work life", "get promoted", "career"]):
+        if any(w in msg_lower for w in ["my career", "my job", "my profession", "career for me", "what should i do for work", "will i get promoted", "promotion", "job change", "career growth", "professional", "work life", "get promoted", "career", "carrier", "business", "startup", "entrepreneur", "youtube", "blogger", "blogging", "channel", "content creator", "influencer", "side hustle", "freelance", "new job", "should i start", "can i start", "thinking of starting", "want to start", "work from home", "online business"]):
             career = analysis.get("career", ["Various career paths suit your chart"])
             car_conf = analysis.get("career_confidence", 85)
             car_reason = analysis.get("career_reasoning", "Jupiter strengthens your 10th house while Saturn supports long-term growth")
@@ -443,7 +443,7 @@ def build_personalized_response(msg_lower, chart, name):
             gem = gem_map.get(sun_lower, "a gemstone suitable for your chart")
             return f"{nname}, based on your Sun sign {sun}, a recommended gemstone is {gem}. However, for accurate gemstone selection, a complete chart analysis is needed considering planetary strengths, dignity, and current dasha periods. Visit the Remedies tab for a full analysis."
 
-        return f"{nname}, based on your birth chart, here is what I can see: Your Sun in {sun} shapes your core identity, while your Moon in {moon} governs your emotional nature. Your Ascendant is {asc}. Key areas of life are influenced by your planetary placements. For specific guidance, try asking about your career, love life, health, wealth, or future predictions — or visit the relevant tab for detailed analysis."
+        return f"{nname}, based on your birth chart: Your {sun} Sun drives your core identity, and your {moon} Moon shapes your emotional world. With {asc} rising, you present yourself with a {asc.lower()} demeanor. Career-wise, your Mercury in {planets.get('Mercury', {}).get('sign', 'a communicative sign')} influences your professional communication style. This is a good time to explore paths that align with your natural strengths. For more specific answers, try asking directly about career, love, health, or visit the relevant tab for detailed predictions."
     except:
         return None
 
