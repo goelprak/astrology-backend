@@ -391,7 +391,7 @@ def build_personalized_response(msg_lower, chart, name):
             planets_str = "; ".join([f"{p}: {d.get('sign', '?')} {d.get('degree', 0):.1f}°" for p, d in planets.items()])
             return f"{nname}, here is your birth chart analysis. Your Sun sign is {sun} (identity, ego, life purpose). Your Moon sign is {moon} (emotions, subconscious, inner self). Your Ascendant/Rising sign is {asc} (outward personality, how others see you). Planetary positions: {planets_str}. {analysis.get('summary', '')}"
 
-        if any(w in msg_lower for w in ["my career", "my job", "my profession", "career for me", "what should i do for work"]):
+        if any(w in msg_lower for w in ["my career", "my job", "my profession", "career for me", "what should i do for work", "will i get promoted", "promotion", "job change", "career growth", "professional", "work life", "get promoted", "career"]):
             career = analysis.get("career", ["Various career paths suit your chart"])
             car_conf = analysis.get("career_confidence", 85)
             car_reason = analysis.get("career_reasoning", "Jupiter strengthens your 10th house while Saturn supports long-term growth")
@@ -399,21 +399,21 @@ def build_personalized_response(msg_lower, chart, name):
             car_prep = analysis.get("preparation_career", "Focus on leadership responsibilities")
             return f"{nname}, based on your birth chart: your Sun in {sun} indicates natural career strengths. Key career indications for you: {'; '.join(career)}. Your chart shows you would excel in fields that align with your {analysis.get('element', '')} energy and {analysis.get('quality', '')} nature. Confidence: {car_conf}%. Reasoning: {car_reason}. Best window for career moves: {car_window}. Preparation: {car_prep}."
 
-        if any(w in msg_lower for w in ["my love", "my relationship", "my romance", "love life", "compatibility"]):
+        if any(w in msg_lower for w in ["my love", "my relationship", "my romance", "love life", "compatibility", "get married", "marriage", "will i find love", "when will i get married", "partner", "soulmate", "relationship", "love", "when will i marry"]):
             rel = analysis.get("relationships", ["Partnerships are important for growth"])
             venus_sign = planets.get('Venus', {}).get('sign', 'a sign')
             love_conf = analysis.get("love_confidence", 72)
             love_reason = analysis.get("love_reasoning", f"Your Venus in {venus_sign} with current planetary aspects creates favorable relationship timing")
             love_window = analysis.get("best_timing_love", "favorable periods indicated in your chart")
             love_prep = analysis.get("preparation_love", "Focus on open communication and emotional vulnerability")
-            return f"{nname}, regarding love and relationships: {'; '.join(rel)}. Your Moon in {moon} shows you need emotional security through {'intuitive understanding' if moon in ['Cancer', 'Scorpio', 'Pisces'] else 'practical stability' if moon in ['Taurus', 'Virgo', 'Capricorn'] else 'intellectual connection' if moon in ['Gemini', 'Libra', 'Aquarius'] else 'passionate excitement'}. Venus in {venus_sign} reveals your love language and what you value in a partner. Confidence: {love_conf}%. Your Venus in {venus_sign} with current planetary aspects creates favorable relationship timing. Best window for relationship growth: {love_window}. Preparation: {love_prep}."
+            return f"{nname}, regarding love and relationships: {'; '.join(rel)}. Your Moon in {moon} shows you need emotional security through {'intuitive understanding' if moon in ['Cancer', 'Scorpio', 'Pisces'] else 'practical stability' if moon in ['Taurus', 'Virgo', 'Capricorn'] else 'intellectual connection' if moon in ['Gemini', 'Libra', 'Aquarius'] else 'passionate excitement'}. Venus in {venus_sign} reveals your love language and what you value in a partner. Confidence: {love_conf}%. Reasoning: {love_reason}. Best window for relationship growth: {love_window}. Preparation: {love_prep}."
 
-        if any(w in msg_lower for w in ["my strength", "my weakness", "strength and weakness", "good at", "bad at"]):
+        if any(w in msg_lower for w in ["my strength", "my weakness", "strength and weakness", "good at", "bad at", "strengths", "weaknesses", "what am i good at"]):
             strengths = analysis.get("strengths", ["Natural talents"])
             challenges = analysis.get("challenges", ["Areas for growth"])
             return f"{nname}, your birth chart reveals these strengths: {'; '.join(strengths)}. Areas for growth: {'; '.join(challenges) if challenges else 'Your chart shows balanced energy across all areas.'}. Your Sun in {sun} gives you the core drive of a {sun.lower()}, which brings both gifts and lessons."
 
-        if any(w in msg_lower for w in ["my health", "my body", "health for me", "wellness"]):
+        if any(w in msg_lower for w in ["my health", "my body", "health for me", "wellness", "health", "sick", "disease", "well being", "healthy"]):
             health = analysis.get("health", ["Maintain balance in lifestyle"])
             sixth_sign = analysis.get("sixth_house_sign", "your chart indicates")
             hlth_conf = analysis.get("health_confidence", 78)
@@ -421,6 +421,13 @@ def build_personalized_response(msg_lower, chart, name):
             hlth_window = analysis.get("best_timing_health", "the coming months")
             hlth_prep = analysis.get("preparation_health", "Establish consistent wellness routines")
             return f"{nname}, health insights from your chart: {'; '.join(health)}. Your Sun in {sun} suggests paying attention to health areas related to that sign. For personalized health recommendations, consider your complete chart and consult with a healthcare professional. Confidence: {hlth_conf}%. Reasoning: {hlth_reason}. Best focus period: {hlth_window}. Preparation: {hlth_prep}."
+
+        if any(w in msg_lower for w in ["my finance", "my money", "my wealth", "rich", "wealth", "financial", "money", "finance", "investment", "property", "wealthy"]):
+            fin = analysis.get("finance", ["Financial stability is indicated in your chart"])
+            return f"{nname}, regarding finances: Your 2nd house (wealth) and 11th house (gains) combined with Jupiter and Venus placements shape your financial prospects. {' '.join(fin) if isinstance(fin, list) else fin} For a detailed wealth analysis, visit the Wealth Prediction tab."
+
+        if any(w in msg_lower for w in ["my future", "future", "what will happen", "prediction", "predict", "upcoming", "what is in store", "destiny"]):
+            return f"{nname}, based on your birth chart analysis: Your Sun in {sun} drives your life purpose. You are currently in a period influenced by your {planets.get('Sun', {}).get('sign', sun)} Sun and {moon} Moon. Key life areas to focus on: {'; '.join(analysis.get('career', ['Professional growth']))}. For detailed future predictions, visit the 10-Year Predictions tab with year-by-year analysis."
 
         if any(w in msg_lower for w in ["my sun sign", "my sun"]):
             info = zodiac_info.get(sun.lower(), "")
@@ -452,13 +459,13 @@ def build_personalized_response(msg_lower, chart, name):
             except:
                 return f"{nname}, I can calculate your current dasha periods if you provide your complete birth details in the Profile tab."
 
-        if any(w in msg_lower for w in ["my gemstone", "gemstone for me", "what gemstone should i wear", "remedies for me", "my remedy"]):
+        if any(w in msg_lower for w in ["my gemstone", "gemstone for me", "what gemstone should i wear", "remedies for me", "my remedy", "gemstone", "gem", "stone", "wear"]):
             sun_lower = sun.lower()
             gem_map = {"aries": "Red Coral", "taurus": "Emerald or Diamond", "gemini": "Emerald", "cancer": "Pearl", "leo": "Ruby", "virgo": "Sapphire", "libra": "Opal", "scorpio": "Topaz", "sagittarius": "Turquoise or Yellow Sapphire", "capricorn": "Garnet or Blue Sapphire", "aquarius": "Amethyst", "pisces": "Jade or Moonstone"}
             gem = gem_map.get(sun_lower, "a gemstone suitable for your chart")
             return f"{nname}, based on your Sun sign {sun}, a recommended gemstone is {gem}. However, for accurate gemstone selection, a complete chart analysis is needed considering planetary strengths, dignity, and current dasha periods. Visit the Remedies tab for a full analysis."
 
-        return None
+        return f"{nname}, based on your birth chart, here is what I can see: Your Sun in {sun} shapes your core identity, while your Moon in {moon} governs your emotional nature. Your Ascendant is {asc}. Key areas of life are influenced by your planetary placements. For specific guidance, try asking about your career, love life, health, wealth, or future predictions — or visit the relevant tab for detailed analysis."
     except:
         return None
 
@@ -483,8 +490,6 @@ async def ai_chat(request: Request):
         msg_lower = msg.lower()
         has_birth = birth_data and birth_data.get("birthDate") and birth_data.get("birthTime")
         user_name = (birth_data.get("name", "") if birth_data else "") or ""
-
-        is_personal = has_birth and any(w in msg_lower for w in [" my ", " me ", " mine ", "i am", "i'm", "am i", "do i", "tell me about my", "for me", "my " + msg_lower.split()[0] if len(msg_lower.split()) > 0 else ""])
 
         if has_birth:
             try:
