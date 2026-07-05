@@ -3037,67 +3037,6 @@ def calculate_life_timeline(birth_date: str, birth_time: str, latitude: float, l
         "starting_dasha": nakshatra_lord
     }
 
-def calculate_face_reading(features: Dict[str, str]) -> Dict[str, Any]:
-    features_lower = {k.lower(): v.lower() if isinstance(v, str) else v for k, v in features.items()}
-
-    face_shape = features_lower.get("face_shape", "oval")
-    forehead = features_lower.get("forehead", "medium")
-    eyebrows = features_lower.get("eyebrows", "medium")
-    eyes = features_lower.get("eyes", "medium")
-    nose = features_lower.get("nose", "medium")
-    lips = features_lower.get("lips", "medium")
-    chin = features_lower.get("chin", "medium")
-    ears = features_lower.get("ears", "medium")
-
-    personality_traits = []
-    if face_shape == "round":
-        personality_traits.extend(["Friendly and approachable", "Good-natured and caring", "Emotionally sensitive"])
-    elif face_shape == "oval":
-        personality_traits.extend(["Balanced and harmonious", "Adaptable and diplomatic", "Well-proportioned personality"])
-    elif face_shape == "square":
-        personality_traits.extend(["Strong-willed and determined", "Practical and grounded", "Natural leader"])
-    elif face_shape == "heart":
-        personality_traits.extend(["Creative and artistic", "Passionate and enthusiastic", "Quick-witted"])
-    elif face_shape == "oblong":
-        personality_traits.extend(["Analytical and thoughtful", "Reserved but insightful", "Strong sense of purpose"])
-
-    strengths = []
-    if forehead in ["high", "wide"]:
-        strengths.append("Intellectual and visionary thinking")
-    if eyebrows in ["thick", "straight"]:
-        strengths.append("Strong willpower and determination")
-    if eyes in ["large", "almond"]:
-        strengths.append("Perceptive and intuitive nature")
-    if nose in ["straight", "long"]:
-        strengths.append("Leadership qualities and confidence")
-    if lips in ["full", "wide"]:
-        strengths.append("Generous and communicative nature")
-    if chin in ["strong", "square"]:
-        strengths.append("Resilience and persistence")
-    if ears in ["large", "attached"]:
-        strengths.append("Good judgment and stability")
-
-    career_affinities = {}
-    if face_shape == "round":
-        career_affinities = {"primary": "Healthcare, Counseling, Education", "secondary": "Hospitality, Arts"}
-    elif face_shape == "square":
-        career_affinities = {"primary": "Management, Engineering, Military", "secondary": "Construction, Law"}
-    elif face_shape == "oval":
-        career_affinities = {"primary": "Diplomacy, Design, Media", "secondary": "Business, Teaching"}
-    elif face_shape == "heart":
-        career_affinities = {"primary": "Creative Arts, Marketing, Writing", "secondary": "Entrepreneurship"}
-    else:
-        career_affinities = {"primary": "Research, Technology, Philosophy", "secondary": "Writing, Consulting"}
-
-    return {
-        "personality_traits": personality_traits,
-        "confidence_level": "high" if any(s in str(strengths) for s in ["Leadership", "Determination"]) else "medium",
-        "communication_style": "Direct and expressive" if lips in ["full", "wide"] else "Thoughtful and measured",
-        "strengths": strengths,
-        "career_affinities": career_affinities,
-        "disclaimer": "Face reading is for entertainment purposes only and should not be used for making important life decisions."
-    }
-
 def generate_pdf_report(birth_date: str, birth_time: str, latitude: float, longitude: float, timezone: str = "UTC") -> Dict[str, Any]:
     chart = calculate_natal_chart(birth_date, birth_time, latitude, longitude, timezone)
     if "error" in chart:

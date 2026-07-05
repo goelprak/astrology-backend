@@ -59,9 +59,6 @@ class LifeTimelineRequest(BaseModel):
     longitude: float
     timezone: str = "Asia/Kolkata"
 
-class FaceReadingRequest(BaseModel):
-    features: dict
-
 class PdfReportRequest(BaseModel):
     birth_date: str
     birth_time: str
@@ -325,14 +322,6 @@ async def get_remedies_detailed(request: RemediesRequest):
 async def get_life_timeline(request: LifeTimelineRequest):
     try:
         result = astrology.calculate_life_timeline(request.birth_date, request.birth_time, request.latitude, request.longitude, request.timezone)
-        return result
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.post("/api/astrology/face-reading")
-async def get_face_reading(request: FaceReadingRequest):
-    try:
-        result = astrology.calculate_face_reading(request.features)
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
