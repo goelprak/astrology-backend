@@ -3,6 +3,7 @@ from typing import Optional
 from fastapi.middleware.cors import CORSMiddleware
 from datetime import datetime
 from pydantic import BaseModel
+import spellfix
 import astrology
 import os
 
@@ -365,11 +366,14 @@ def build_personalized_response(msg_lower, chart, name):
         planets = chart.get("planets", {})
         nname = name or "there"
 
+        # Normalize misspellings via fuzzy matching
+        msg_lower = spellfix.correct_spelling(msg_lower)
+
         if any(w in msg_lower for w in ["my birth chart", "my chart", "my kundli", "about my chart"]):
             planets_str = "; ".join([f"{p}: {d.get('sign', '?')} {d.get('degree', 0):.1f}°" for p, d in planets.items()])
             return f"{nname}, here is your birth chart analysis. Your Sun sign is {sun} (identity, ego, life purpose). Your Moon sign is {moon} (emotions, subconscious, inner self). Your Ascendant/Rising sign is {asc} (outward personality, how others see you). Planetary positions: {planets_str}. {analysis.get('summary', '')}"
 
-        if any(w in msg_lower for w in ["youtube", "you tube", "yt channel", "blogger", "blogging", "content creator", "influencer", "social media", "vlogger", "vlogging"]):
+        if any(w in msg_lower for w in ["youtube", "you tube", "yt", "blogger", "blogging", "content creator", "influencer", "social media", "vlogger", "vlogging"]):
             mer = planets.get('Mercury', {}).get('sign', 'Gemini')
             ven = planets.get('Venus', {}).get('sign', 'Taurus')
             jup = planets.get('Jupiter', {}).get('sign', 'Sagittarius')
@@ -378,6 +382,16 @@ def build_personalized_response(msg_lower, chart, name):
             ven_show = "strong" if ven in ['Leo', 'Libra', 'Pisces'] else "moderate"
             yes_no = "yes, your chart supports it" if mer_comm == "strong" and tenth == "Air" else "yes, with focused effort" if mer_comm != "weak" else "it's possible but requires extra dedication"
             return f"{nname}, regarding {msg_lower.split('as')[-1] if 'as' in msg_lower else 'content creation'} as a career: {yes_no}. Your Mercury in {mer} gives you {mer_comm} communication skills {'— ideal for scripting, presenting, and engaging with an audience' if mer_comm == 'strong' else '— you may need to work on consistent content creation'}. Venus in {ven} indicates {ven_show} creative and aesthetic sense {'that will attract viewers through visual appeal and charm' if ven_show == 'strong' else '— consider collaborating for production quality'}. Your 3rd house (communication) and 5th house (creativity) placements will play key roles in your success. Confidence: 78%. Best timing: Start building your channel now and you will see meaningful growth within 6-8 months. Preparation: Focus on a niche that combines your knowledge with your natural {tenth.lower()} energy — educational, lifestyle, or creative content suits your chart."
+
+        if any(w in msg_lower for w in ["cricket", "cric ter", "cricter", "cricketer", "cricketer", "sports", "sport", "athlete", "athletic", "player", "football", "soccer", "basketball", "tennis"]):
+            mars = planets.get('Mars', {}).get('sign', 'Aries')
+            sun = planets.get('Sun', {}).get('sign', 'Leo')
+            jup = planets.get('Jupiter', {}).get('sign', 'Sagittarius')
+            sat = planets.get('Saturn', {}).get('sign', 'Capricorn')
+            mars_str = "strong" if mars in ['Aries', 'Scorpio', 'Capricorn'] else "moderate"
+            sun_str = "strong" if sun in ['Leo', 'Aries', 'Sagittarius'] else "moderate"
+            yes_no = "yes, your chart shows athletic potential" if mars_str == "strong" and sun_str == "strong" else "yes, with training and discipline" if mars_str != "weak" else "it's possible but requires extra physical conditioning"
+            return f"{nname}, regarding sports as a career: {yes_no}. Your Mars in {mars} gives you {mars_str} physical drive and competitiveness {'— a natural advantage for sports requiring stamina and aggression' if mars_str == 'strong' else '— consistency in training will be key'}. Your Sun in {sun} indicates {sun_str} leadership and confidence {'that helps in high-pressure sports environments' if sun_str == 'strong' else '— building self-belief through practice is important'}. Saturn in {sat} influences your discipline and long-term athletic development. Confidence: 80%. Best timing: The next 12-18 months are favorable for starting serious training. Preparation: Focus on building endurance and technical skills before competitive matches."
 
         if any(w in msg_lower for w in ["my career", "my job", "my profession", "career for me", "what should i do for work", "will i get promoted", "promotion", "job change", "career growth", "professional", "work life", "get promoted", "career", "carrier", "business", "startup", "entrepreneur", "side hustle", "freelance", "new job", "should i start", "can i start", "thinking of starting", "want to start", "work from home", "online business"]):
             career = analysis.get("career", ["Various career paths suit your chart"])
