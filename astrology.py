@@ -387,14 +387,38 @@ def calculate_natal_chart(birth_date: str, birth_time: str, latitude: float, lon
     moon_sign = get_zodiac_sign(planets.get("Moon", 0))
     asc_sign = get_zodiac_sign(asc_degree)
     
+    houses = calculate_houses(asc_degree, mc_degree, latitude)
+    house_cusps = [(int(h), houses[h]["cusp"]) for h in sorted(houses.keys(), key=int)]
+    def get_house(deg):
+        deg = deg % 360
+        for i in range(12):
+            curr_cusp = house_cusps[i][1]
+            next_cusp = house_cusps[(i + 1) % 12][1]
+            if curr_cusp <= next_cusp:
+                if curr_cusp <= deg < next_cusp:
+                    return i + 1
+            else:
+                if deg >= curr_cusp or deg < next_cusp:
+                    return i + 1
+        return 1
+
+    planets_with_houses = {}
+    for k, v in planets.items():
+        sign = get_zodiac_sign(v)
+        planets_with_houses[k] = {
+            "degree": round(v, 2),
+            "sign": sign,
+            "house": get_house(v)
+        }
+
     chart = {
         "sun_sign": sun_sign,
         "moon_sign": moon_sign,
         "rising_sign": asc_sign,
         "ascendant_degree": round(asc_degree, 2),
         "midheaven_degree": round(mc_degree, 2),
-        "planets": {k: {"degree": round(v, 2), "sign": get_zodiac_sign(v)} for k, v in planets.items()},
-        "houses": calculate_houses(asc_degree, mc_degree, latitude)
+        "planets": planets_with_houses,
+        "houses": houses
     }
     
     return chart
