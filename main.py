@@ -369,7 +369,7 @@ def build_personalized_response(msg_lower, chart, name):
             planets_str = "; ".join([f"{p}: {d.get('sign', '?')} {d.get('degree', 0):.1f}°" for p, d in planets.items()])
             return f"{nname}, here is your birth chart analysis. Your Sun sign is {sun} (identity, ego, life purpose). Your Moon sign is {moon} (emotions, subconscious, inner self). Your Ascendant/Rising sign is {asc} (outward personality, how others see you). Planetary positions: {planets_str}. {analysis.get('summary', '')}"
 
-        if any(w in msg_lower for w in ["youtube", "blogger", "blogging", "content creator", "influencer", "social media", "vlogger", "vlogging"]):
+        if any(w in msg_lower for w in ["youtube", "you tube", "yt channel", "blogger", "blogging", "content creator", "influencer", "social media", "vlogger", "vlogging"]):
             mer = planets.get('Mercury', {}).get('sign', 'Gemini')
             ven = planets.get('Venus', {}).get('sign', 'Taurus')
             jup = planets.get('Jupiter', {}).get('sign', 'Sagittarius')
