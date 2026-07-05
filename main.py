@@ -393,11 +393,20 @@ def build_personalized_response(msg_lower, chart, name):
 
         if any(w in msg_lower for w in ["my career", "my job", "my profession", "career for me", "what should i do for work"]):
             career = analysis.get("career", ["Various career paths suit your chart"])
-            return f"{nname}, based on your birth chart: your Sun in {sun} indicates natural career strengths. Key career indications for you: {'; '.join(career)}. Your chart shows you would excel in fields that align with your {analysis.get('element', '')} energy and {analysis.get('quality', '')} nature."
+            car_conf = analysis.get("career_confidence", 85)
+            car_reason = analysis.get("career_reasoning", "Jupiter strengthens your 10th house while Saturn supports long-term growth")
+            car_window = analysis.get("best_timing_career", "August-November")
+            car_prep = analysis.get("preparation_career", "Focus on leadership responsibilities")
+            return f"{nname}, based on your birth chart: your Sun in {sun} indicates natural career strengths. Key career indications for you: {'; '.join(career)}. Your chart shows you would excel in fields that align with your {analysis.get('element', '')} energy and {analysis.get('quality', '')} nature. Confidence: {car_conf}%. Reasoning: {car_reason}. Best window for career moves: {car_window}. Preparation: {car_prep}."
 
         if any(w in msg_lower for w in ["my love", "my relationship", "my romance", "love life", "compatibility"]):
             rel = analysis.get("relationships", ["Partnerships are important for growth"])
-            return f"{nname}, regarding love and relationships: {'; '.join(rel)}. Your Moon in {moon} shows you need emotional security through {'intuitive understanding' if moon in ['Cancer', 'Scorpio', 'Pisces'] else 'practical stability' if moon in ['Taurus', 'Virgo', 'Capricorn'] else 'intellectual connection' if moon in ['Gemini', 'Libra', 'Aquarius'] else 'passionate excitement'}. Venus in {planets.get('Venus', {}).get('sign', 'a sign')} reveals your love language and what you value in a partner."
+            venus_sign = planets.get('Venus', {}).get('sign', 'a sign')
+            love_conf = analysis.get("love_confidence", 72)
+            love_reason = analysis.get("love_reasoning", f"Your Venus in {venus_sign} with current planetary aspects creates favorable relationship timing")
+            love_window = analysis.get("best_timing_love", "favorable periods indicated in your chart")
+            love_prep = analysis.get("preparation_love", "Focus on open communication and emotional vulnerability")
+            return f"{nname}, regarding love and relationships: {'; '.join(rel)}. Your Moon in {moon} shows you need emotional security through {'intuitive understanding' if moon in ['Cancer', 'Scorpio', 'Pisces'] else 'practical stability' if moon in ['Taurus', 'Virgo', 'Capricorn'] else 'intellectual connection' if moon in ['Gemini', 'Libra', 'Aquarius'] else 'passionate excitement'}. Venus in {venus_sign} reveals your love language and what you value in a partner. Confidence: {love_conf}%. Your Venus in {venus_sign} with current planetary aspects creates favorable relationship timing. Best window for relationship growth: {love_window}. Preparation: {love_prep}."
 
         if any(w in msg_lower for w in ["my strength", "my weakness", "strength and weakness", "good at", "bad at"]):
             strengths = analysis.get("strengths", ["Natural talents"])
@@ -406,7 +415,12 @@ def build_personalized_response(msg_lower, chart, name):
 
         if any(w in msg_lower for w in ["my health", "my body", "health for me", "wellness"]):
             health = analysis.get("health", ["Maintain balance in lifestyle"])
-            return f"{nname}, health insights from your chart: {'; '.join(health)}. Your Sun in {sun} suggests paying attention to health areas related to that sign. For personalized health recommendations, consider your complete chart and consult with a healthcare professional."
+            sixth_sign = analysis.get("sixth_house_sign", "your chart indicates")
+            hlth_conf = analysis.get("health_confidence", 78)
+            hlth_reason = analysis.get("health_reasoning", f"Your Moon in {moon} and 6th house in {sixth_sign} indicate health patterns")
+            hlth_window = analysis.get("best_timing_health", "the coming months")
+            hlth_prep = analysis.get("preparation_health", "Establish consistent wellness routines")
+            return f"{nname}, health insights from your chart: {'; '.join(health)}. Your Sun in {sun} suggests paying attention to health areas related to that sign. For personalized health recommendations, consider your complete chart and consult with a healthcare professional. Confidence: {hlth_conf}%. Reasoning: {hlth_reason}. Best focus period: {hlth_window}. Preparation: {hlth_prep}."
 
         if any(w in msg_lower for w in ["my sun sign", "my sun"]):
             info = zodiac_info.get(sun.lower(), "")
@@ -512,7 +526,7 @@ async def ai_chat(request: Request):
 
             hor = tab_context.get("horoscope")
             if hor and any(w in msg_lower for w in ["my horoscope", "today's prediction", "today horoscope", "daily horoscope", "what does today", "my daily", "explain my horoscope"]):
-                return {"response": f"Your daily horoscope for {hor.get('sign', 'your sign')} on {hor.get('date', 'today')}: {hor.get('prediction', 'A day of potential and growth')}. Your mood: {hor.get('mood', 'Balanced')}. Lucky number: {hor.get('lucky_number', '?')}. Lucky color: {hor.get('lucky_color', '?')}. Lucky day: {hor.get('lucky_day', '?')}. Focus area: {hor.get('focus_area', 'Personal growth')}. This prediction is based on the current lunar transit and how it aspects your Sun sign."}
+                return {"response": f"Your daily horoscope for {hor.get('sign', 'your sign')} on {hor.get('date', 'today')}: {hor.get('prediction', 'A day of potential and growth')}. Your mood: {hor.get('mood', 'Balanced')}. Lucky number: {hor.get('lucky_number', '?')}. Lucky color: {hor.get('lucky_color', '?')}. Lucky day: {hor.get('lucky_day', '?')}. Focus area: {hor.get('focus_area', 'Personal growth')}. This prediction is based on the current lunar transit and how it aspects your Sun sign. Confidence: Career {hor.get('confidence_career','?')}% | Love {hor.get('confidence_love','?')}% | Health {hor.get('confidence_health','?')}% | Finance {hor.get('confidence_finance','?')}%. Reasoning: {hor.get('reasoning','')} Best timing: {hor.get('best_timing','')} Preparation: {hor.get('preparation','')}"}
 
             wk = tab_context.get("weekly")
             if wk and any(w in msg_lower for w in ["my weekly", "this week", "weekly horoscope", "week ahead", "explain my week"]):
@@ -550,7 +564,15 @@ async def ai_chat(request: Request):
                                 break
                         break
                 if year_match:
-                    return {"response": f"Prediction for {year_match.get('year', '?')} (age {year_match.get('age', '?')}):\nMahadasha: {year_match.get('mahadasha', '?')}\nAntardasha: {year_match.get('antardasha', '?')}\nOverall theme: {year_match.get('overall_theme', 'A year of growth')}\n💼 Career: {year_match.get('career_prediction', 'Professional developments')}\n❤️ Love: {year_match.get('love_prediction', 'Relationship insights')}\n💰 Finance: {year_match.get('finance_prediction', 'Financial outlook')}\n🏥 Health: {year_match.get('health_prediction', 'Health guidance')}\nRating: {year_match.get('rating', '?')}/10"}
+                    career_d = year_match.get("career", {})
+                    love_d = year_match.get("love", {})
+                    finance_d = year_match.get("finance", {})
+                    health_d = year_match.get("health", {})
+                    career_text = f"💼 Career ({career_d.get('confidence', '?')}%): {career_d.get('prediction', year_match.get('career_prediction', 'Professional developments'))}... Reasoning: {career_d.get('reasoning', 'Planetary alignments support career growth')}. Best window: {career_d.get('best_window', 'Your chart cycles')}. Preparation: {career_d.get('preparation', 'Focus on skill development')}"
+                    love_text = f"❤️ Love ({love_d.get('confidence', '?')}%): {love_d.get('prediction', year_match.get('love_prediction', 'Relationship insights'))}... Reasoning: {love_d.get('reasoning', 'Venus and 7th house indicate relationship growth')}. Best window: {love_d.get('best_window', 'Your relationship cycles')}. Preparation: {love_d.get('preparation', 'Nurture emotional connections')}"
+                    finance_text = f"💰 Finance ({finance_d.get('confidence', '?')}%): {finance_d.get('prediction', year_match.get('finance_prediction', 'Financial outlook'))}... Reasoning: {finance_d.get('reasoning', 'Jupiter and 2nd house influence financial trends')}. Best window: {finance_d.get('best_window', 'Your financial cycles')}. Preparation: {finance_d.get('preparation', 'Plan investments carefully')}"
+                    health_text = f"🏥 Health ({health_d.get('confidence', '?')}%): {health_d.get('prediction', year_match.get('health_prediction', 'Health guidance'))}... Reasoning: {health_d.get('reasoning', 'Moon and 6th house indicate health patterns')}. Best window: {health_d.get('best_window', 'Your health cycles')}. Preparation: {health_d.get('preparation', 'Maintain balanced routines')}"
+                    return {"response": f"Prediction for {year_match.get('year', '?')} (age {year_match.get('age', '?')}):\nMahadasha: {year_match.get('mahadasha', '?')}\nAntardasha: {year_match.get('antardasha', '?')}\nOverall theme: {year_match.get('overall_theme', 'A year of growth')}\n{career_text}\n{love_text}\n{finance_text}\n{health_text}\nRating: {year_match.get('rating', '?')}/10"}
                 if any(w in msg_lower for w in ["my prediction", "my future", "my 10 year", "what will happen", "future prediction", "dasha predictions"]):
                     return {"response": f"Your 10-year predictions are available in the 10-Year Predictions tab. The current year's Mahadasha is {preds[0].get('mahadasha', '?')} with {preds[0].get('antardasha', '?')} Antardasha. Your chart shows {yr.get('chart_summary', {}).get('sun_sign', '?')} Sun, {yr.get('chart_summary', {}).get('moon_sign', '?')} Moon, {yr.get('chart_summary', {}).get('rising_sign', '?')} Rising. Ask about a specific year (e.g., 'What happens in 2027?') for detailed predictions."}
 
@@ -562,13 +584,25 @@ async def ai_chat(request: Request):
                     return {"response": f"Your birth chart reveals these key strengths: {'; '.join(strs) if strs else 'Natural talents across multiple areas'}. Areas for growth: {'; '.join(chals) if chals else 'Balanced energy overall'}. Your Sun in {da.get('sun_sign', '?')} gives you your core drive, while your Moon in {da.get('moon_sign', '?')} shapes your emotional nature."}
                 if any(w in msg_lower for w in ["my career", "my job", "career for me", "what should i do for work", "my profession"]):
                     car = da.get("career", [])
-                    return {"response": f"Your career insights based on your chart: {'; '.join(car) if car else 'Multiple career paths suit your chart'}. Your Sun in {da.get('sun_sign', '?')} indicates natural leadership qualities, and your 10th house ruler further shapes your professional path."}
+                    car_conf = da.get("career_confidence", "?")
+                    car_reason = da.get("career_reasoning", "Planetary alignments support your professional growth")
+                    car_timing = da.get("best_timing_career", "your chart cycles")
+                    car_prep = da.get("preparation_advice", "Continue developing your strengths")
+                    return {"response": f"Your career insights based on your chart: {'; '.join(car) if car else 'Multiple career paths suit your chart'}. Your Sun in {da.get('sun_sign', '?')} indicates natural leadership qualities, and your 10th house ruler further shapes your professional path. Confidence scores: Career {car_conf}%. {car_reason} Best timing: Career growth during {car_timing} Preparation: {car_prep}"}
                 if any(w in msg_lower for w in ["my love", "my relationship", "love life", "compatibility"]):
                     rel = da.get("relationships", [])
-                    return {"response": f"Love and relationship insights from your chart: {'; '.join(rel) if rel else 'Meaningful partnerships indicated'}. Venus and 7th house placements play key roles in your relationship dynamics."}
+                    love_conf = da.get("love_confidence", "?")
+                    love_reason = da.get("love_reasoning", "Venus and 7th house placements shape your relationship dynamics")
+                    love_timing = da.get("best_timing_love", "your relationship cycles")
+                    love_prep = da.get("preparation_advice", "Continue developing your strengths")
+                    return {"response": f"Love and relationship insights from your chart: {'; '.join(rel) if rel else 'Meaningful partnerships indicated'}. Venus and 7th house placements play key roles in your relationship dynamics. Confidence scores: Love {love_conf}%. {love_reason} Best timing: Relationship growth during {love_timing} Preparation: {love_prep}"}
                 if any(w in msg_lower for w in ["my health", "my body", "health for me", "wellness"]):
                     hea = da.get("health", [])
-                    return {"response": f"Health insights from your chart: {'; '.join(hea) if hea else 'Balance is key for your wellbeing'}. Your chart indicates areas to focus on for optimal wellness."}
+                    hlth_conf = da.get("health_confidence", "?")
+                    hlth_reason = da.get("health_reasoning", "Moon and 6th house influence your wellbeing patterns")
+                    hlth_timing = da.get("best_timing_health", "your health cycles")
+                    hlth_prep = da.get("preparation_advice", "Continue developing your strengths")
+                    return {"response": f"Health insights from your chart: {'; '.join(hea) if hea else 'Balance is key for your wellbeing'}. Your chart indicates areas to focus on for optimal wellness. Confidence scores: Health {hlth_conf}%. {hlth_reason} Best timing: Health focus during {hlth_timing} Preparation: {hlth_prep}"}
 
         greetings = ["hi", "hello", "hey", "namaste", "good morning", "good evening", "good afternoon"]
         if any(g in msg_lower for g in greetings):

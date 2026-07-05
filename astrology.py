@@ -271,6 +271,59 @@ def generate_daily_horoscope(sign: str, date: datetime) -> Dict[str, Any]:
     index = (fixed_index + day_of_year) % 5
     prediction = horoscopes.get(sign, horoscopes["Aries"])[index]
     
+    seed = fixed_index + day_of_year
+    
+    confidence_career = 50 + ((fixed_index * 13 + day_of_year * 7) % 46)
+    confidence_love = 50 + ((fixed_index * 17 + day_of_year * 11) % 46)
+    confidence_health = 50 + ((fixed_index * 19 + day_of_year * 5) % 46)
+    confidence_finance = 50 + ((fixed_index * 23 + day_of_year * 3) % 46)
+    
+    housemap = [
+        "first house of self and identity", "second house of values and possessions",
+        "third house of communication and community", "fourth house of home and family",
+        "fifth house of creativity and romance", "sixth house of work and wellness",
+        "seventh house of partnerships", "eighth house of transformation and shared resources",
+        "ninth house of philosophy and expansion", "tenth house of career and public image",
+        "eleventh house of friendships and aspirations", "twelfth house of spirituality and solitude"
+    ]
+    ruling_planets = {
+        "Aries": "Mars", "Taurus": "Venus", "Gemini": "Mercury",
+        "Cancer": "Moon", "Leo": "Sun", "Virgo": "Mercury",
+        "Libra": "Venus", "Scorpio": "Pluto", "Sagittarius": "Jupiter",
+        "Capricorn": "Saturn", "Aquarius": "Uranus", "Pisces": "Neptune"
+    }
+    area_labels = ["career", "relationships", "health", "finances", "personal growth"]
+    ruling_planet = ruling_planets.get(sign, "the cosmos")
+    transit_house = housemap[(fixed_index + day_of_year) % 12]
+    area_by_seed = area_labels[(fixed_index + day_of_year) % 5]
+    
+    reasoning_templates = [
+        f"Today's lunar transit through the {transit_house} activates your {area_by_seed}, while {ruling_planet}'s stable influence supports grounded decision-making.",
+        f"Mercury's current aspect to your Sun sign enhances communication in matters of {area_by_seed}, making this a powerful time for clarity and connection.",
+        f"Venus aligns favorably with your ruling planet {ruling_planet}, bringing harmony to your {area_by_seed} and amplifying your natural charisma.",
+        f"The {ruling_planet} energy is strong today as transits activate the {transit_house}, encouraging bold moves in {area_by_seed}.",
+        f"Jupiter's expansive influence touches your chart, broadening opportunities in {area_by_seed} and inviting you to grow beyond self-imposed limits."
+    ]
+    reasoning = reasoning_templates[(fixed_index + day_of_year) % 5]
+    
+    timing_templates = [
+        "Morning hours are most favorable for important decisions and career moves.",
+        "Mid-afternoon brings relationship opportunities and creative inspiration.",
+        "Evening tranquility supports reflection, planning, and meaningful conversations.",
+        "Late morning energy peaks for financial decisions and negotiations.",
+        "The hours just after noon are ideal for health routines and personal wellness."
+    ]
+    best_timing = timing_templates[(fixed_index + day_of_year) % 5]
+    
+    preparation_templates = [
+        "Prepare by setting clear intentions before noon and reviewing your goals tonight.",
+        "Start your day with meditation to focus your energy on what truly matters.",
+        "Review your goals tonight and plan tomorrow's priorities with a clear mind.",
+        "Take five deep breaths before any major decision today to stay grounded.",
+        "Write down three things you are grateful for to align yourself with abundance."
+    ]
+    preparation = preparation_templates[(fixed_index + day_of_year) % 5]
+    
     luck_factors = {
         "lucky_number": (fixed_index * 7 + day_of_year) % 99 + 1,
         "lucky_color": ["Red", "Blue", "Green", "Gold", "Purple", "Silver"][(fixed_index + day_of_year) % 6],
@@ -280,15 +333,35 @@ def generate_daily_horoscope(sign: str, date: datetime) -> Dict[str, Any]:
     categories = ["Career Advancement and Ambition", "Relationships and Emotional Connection", "Health, Wellness and Vitality", "Financial Growth and Stability", "Personal Growth and Social Expansion"]
     category_index = (fixed_index + day_of_year) % 5
     
+    confidence_line = f"Career {confidence_career}%, Love {confidence_love}%, Health {confidence_health}%, Finance {confidence_finance}%"
+    enhanced_prediction = f"{prediction}\n\nAstrological summary — Confidence: {confidence_line}. {reasoning} {best_timing} {preparation}"
+    
+    base_mood = ["Motivated and Driven", "Radiant and Inspired", "Grounded and Serene", "Introspective and Wise", "Imaginative and Playful"][(fixed_index + day_of_year) % 5]
+    avg_conf = (confidence_career + confidence_love + confidence_health + confidence_finance) // 4
+    if avg_conf >= 80:
+        mood_modifier = " with exceptional cosmic alignment"
+    elif avg_conf >= 65:
+        mood_modifier = " with steady planetary support"
+    else:
+        mood_modifier = " — take extra care today"
+    mood = base_mood + mood_modifier
+    
     return {
         "sign": sign,
         "date": date.strftime("%Y-%m-%d"),
-        "prediction": prediction,
-        "mood": ["Motivated and Driven", "Radiant and Inspired", "Grounded and Serene", "Introspective and Wise", "Imaginative and Playful"][(fixed_index + day_of_year) % 5],
+        "prediction": enhanced_prediction,
+        "mood": mood,
         "lucky_number": luck_factors["lucky_number"],
         "lucky_color": luck_factors["lucky_color"],
         "lucky_day": luck_factors["lucky_day"],
-        "focus_area": categories[category_index]
+        "focus_area": categories[category_index],
+        "confidence_career": confidence_career,
+        "confidence_love": confidence_love,
+        "confidence_health": confidence_health,
+        "confidence_finance": confidence_finance,
+        "reasoning": reasoning,
+        "best_timing": best_timing,
+        "preparation": preparation
     }
 
 def calculate_natal_chart(birth_date: str, birth_time: str, latitude: float, longitude: float, timezone: str = "UTC") -> Dict[str, Any]:
@@ -937,6 +1010,30 @@ def generate_detailed_analysis(chart: Dict) -> Dict[str, Any]:
     sun_ruler = get_planet_ruler(sun_sign)
     moon_ruler_val = get_planet_ruler(moon_sign) if moon_sign else ""
     
+    # --- CONFIDENCE ---
+    total_points = len(strengths) + len(challenges)
+    if total_points > 0:
+        ratio = len(strengths) / total_points
+    else:
+        ratio = 0.5
+    confidence_overall = min(95, max(50, round(50 + ratio * 45)))
+    
+    career_confidence = min(95, max(50, 50 + len(career_indications) * 8))
+    love_confidence = min(95, max(50, 50 + len(relationship_indications) * 8))
+    health_confidence = min(95, max(50, 50 + len(health_indications) * 8))
+    
+    # --- REASONING ---
+    career_reasoning = f"Your Sun in {sun_s} indicates natural leadership and your 10th house placement suggests public recognition"
+    love_reasoning = f"Venus in {ven_s} combined with your 7th house in {house_7_sign} shapes your relationship patterns"
+    health_reasoning = f"Your Moon in {moon_s} connects emotions to your {house_6_sign} health sector"
+    
+    # --- TIMING & ADVICE ---
+    best_timing_career = "Career growth peaks during Jupiter transit through your 10th house"
+    best_timing_love = "Relationship opportunities strengthen during Venus retrograde periods"
+    preparation_advice = "Focus on developing leadership skills and networking in the next 3 months"
+    
+    summary = f"You are a {ELEMENTS.get(sun_sign, '')} sign ({sun_sign}) with {moon_sign} Moon and {rising_sign} Rising. Your ruling planet is {sun_ruler}. Overall confidence in this analysis: {confidence_overall}%"
+    
     return {
         "sun_sign": sun_sign,
         "moon_sign": moon_sign,
@@ -956,7 +1053,17 @@ def generate_detailed_analysis(chart: Dict) -> Dict[str, Any]:
         "career": career_indications if career_indications else ["Various career paths suit your chart — focus on aligning work with your Sun sign purpose"],
         "relationships": relationship_indications if relationship_indications else ["Partnerships are important for growth — your Venus and Mars signs reveal your unique relational style"],
         "health": health_indications if health_indications else ["Maintain balance in lifestyle — your 6th house and Moon sign offer clues to your ideal wellness routine"],
-        "summary": f"You are a {ELEMENTS.get(sun_sign, '')} sign ({sun_sign}) with {moon_sign} Moon and {rising_sign} Rising. Your ruling planet is {sun_ruler}."
+        "confidence_overall": confidence_overall,
+        "career_confidence": career_confidence,
+        "love_confidence": love_confidence,
+        "health_confidence": health_confidence,
+        "career_reasoning": career_reasoning,
+        "love_reasoning": love_reasoning,
+        "health_reasoning": health_reasoning,
+        "best_timing_career": best_timing_career,
+        "best_timing_love": best_timing_love,
+        "preparation_advice": preparation_advice,
+        "summary": summary
     }
 
 def calculate_kundli_matching(chart1: Dict, chart2: Dict) -> Dict[str, Any]:
@@ -1132,6 +1239,34 @@ def generate_weekly_horoscope(sign: str, week_start_date: str) -> Dict[str, Any]
     
     rating = ((hash_val % 5) + 6)
     
+    confidence_percentage = 50 + ((hash_val >> 4) % 46)
+    reasoning_options = [
+        "The alignment of Mercury and Venus this week brings harmony to communication and relationships, making it easier to express your true feelings.",
+        "Mars energizes your sector of ambition, pushing you to take bold steps toward your goals with renewed determination.",
+        "The New Moon in your sign opens a portal of fresh energy, making this an ideal week to set intentions for the month ahead.",
+        "Jupiter's trine to your sun brings expansion and optimism, encouraging you to think bigger about what's possible.",
+        "Saturn's influence this week asks you to take a disciplined approach to your responsibilities, rewarding patience and structure.",
+        "Venus moves into your romance sector, showering your relationships with warmth, beauty, and deeper emotional connection.",
+        "Mercury's transit through your sign sharpens your intellect and communication skills, making this an excellent week for negotiations and creative writing.",
+        "The Sun's position highlights your social sector, bringing opportunities to expand your network and strengthen friendships."
+    ]
+    best_window_options = [
+        "Early week is best for initiating new projects and having important conversations that set the tone for the days ahead.",
+        "Mid-week brings opportunities for collaboration and creative problem-solving as planetary alignments enhance teamwork.",
+        "The weekend offers ideal conditions for rest, reflection, and quality time with loved ones under a nurturing lunar influence.",
+        "Thursday and Friday are your power days for negotiations, financial decisions, and career moves that require confidence.",
+        "Monday sets the stage for a productive week \u2014 use it to plan, organize, and clarify your intentions for maximum impact.",
+        "Wednesday acts as a turning point, bringing clarity and forward momentum that carries you through the rest of the week."
+    ]
+    preparation_options = [
+        "Focus on organizing your priorities before the week begins to maximize the favorable cosmic energy flowing through your sector.",
+        "Prepare for unexpected opportunities by keeping your schedule flexible, especially mid-week when surprises are most likely.",
+        "Set clear intentions on Monday morning to align your actions with the week\u2019s astrological themes and manifest your goals.",
+        "Review your long-term goals this week and adjust your short-term plans to ensure they are still serving your highest purpose.",
+        "Take time to ground yourself before the week\u2019s intensity hits \u2014 meditation or journaling will help you stay centered.",
+        "Clear any lingering emotional baggage early in the week to make space for the new blessings and opportunities heading your way."
+    ]
+    
     return {
         "sign": sign,
         "week_start": week_start_date,
@@ -1142,7 +1277,11 @@ def generate_weekly_horoscope(sign: str, week_start_date: str) -> Dict[str, Any]
         "finance": sign_pred["finance"],
         "lucky_color": ["Red", "Blue", "Green", "Gold", "Purple", "Silver", "White", "Black"][hash_val % 8],
         "lucky_number": (hash_val % 99) + 1,
-        "advice": "Trust the journey. Every challenge is an opportunity for growth."
+        "advice": "Trust the journey. Every challenge is an opportunity for growth.",
+        "confidence_percentage": confidence_percentage,
+        "reasoning": reasoning_options[(hash_val >> 8) % len(reasoning_options)],
+        "best_window": best_window_options[(hash_val >> 12) % len(best_window_options)],
+        "preparation": preparation_options[(hash_val >> 16) % len(preparation_options)]
     }
 
 def generate_monthly_horoscope(sign: str, year: int, month: int) -> Dict[str, Any]:
@@ -1248,6 +1387,68 @@ def generate_monthly_horoscope(sign: str, year: int, month: int) -> Dict[str, An
     
     pred = predictions.get(sign, default_pred)
     
+    confidence_percentage = 50 + ((hash_val >> 4) % 46)
+    reasoning_options = [
+        "The cosmic alignment this month favors bold action and heartfelt communication, as Venus and Mars dance in harmonious aspect.",
+        "Saturn's stabilizing influence this month rewards disciplined effort and long-term planning across all areas of your life.",
+        "The New Moon in your sign this month offers a powerful reset point for setting intentions and manifesting your deepest desires.",
+        "Jupiter's expansive energy this month encourages you to think bigger and reach higher in your career and personal ambitions.",
+        "Mercury's movement through your financial sector this month brings clarity to money matters and opportunities for smart investments.",
+        "The Full Moon this month illuminates your relationship sector, bringing hidden feelings to the surface and deepening emotional bonds.",
+        "Uranus stirs unexpected changes this month, pushing you out of comfort zones and into exciting new territories of growth.",
+        "Neptune's dreamy influence this month heightens your intuition and creativity, making it a powerful time for artistic and spiritual pursuits."
+    ]
+    best_window_options = [
+        "The first half of the month is ideal for launching new initiatives and setting ambitious goals that will carry you forward.",
+        "The middle of the month brings a surge of energy and confidence, perfect for tackling challenges and advancing your career.",
+        "The last week of the month offers opportunities for closure, reflection, and preparing for the exciting changes ahead.",
+        "The first week sets a powerful foundation \u2014 use it to plan, strategize, and align your actions with your highest vision.",
+        "The third week of the month is your sweet spot for relationships, creativity, and finding joy in everyday moments.",
+        "The second half of the month favors financial decisions, practical planning, and building lasting structures for your future."
+    ]
+    preparation_options = [
+        "Use this month to lay strong foundations for future success by focusing on your long-term goals and consistent daily habits.",
+        "This month calls you to embrace change with an open heart \u2014 prepare by releasing old patterns that no longer serve your growth.",
+        "Make this month count by setting bold intentions and taking inspired action toward the life you truly want to live.",
+        "Let this month be a time of deep listening \u2014 to your intuition, your body, and the quiet wisdom that guides you from within.",
+        "Channel this month\u2019s energy into building meaningful connections and investing your time where it yields the greatest emotional returns.",
+        "Approach this month as a season of preparation for the abundance that is heading your way \u2014 get your foundation ready.",
+        "This month invites you to find balance between ambition and rest, productivity and presence, doing and being.",
+        "Use the energy of this month to declutter your life \u2014 clear your space, your schedule, and your mind for new blessings."
+    ]
+    career_reasoning_options = [
+        "Mars in your career sector drives professional ambition and leadership potential this month.",
+        "Saturn's influence on your professional life rewards patience and strategic long-term planning.",
+        "Jupiter expands your career horizons, bringing opportunities for growth and recognition from superiors.",
+        "Mercury sharpens your professional communication, making this an excellent month for negotiations and presentations.",
+        "The Sun illuminates your career path, bringing clarity about your next professional steps.",
+        "Venus brings harmony to workplace relationships, making collaboration and networking especially fruitful."
+    ]
+    love_reasoning_options = [
+        "Venus in your romance sector deepens emotional connections and attracts new romantic possibilities.",
+        "The Full Moon in your relationship sign brings hidden feelings to light, deepening intimacy.",
+        "Mars ignites passion in your relationships, encouraging bold romantic gestures and honest communication.",
+        "Mercury facilitates meaningful conversations that strengthen your emotional bonds with loved ones.",
+        "Jupiter expands your social circle, increasing the chances of meeting someone aligned with your values.",
+        "Saturn asks you to commit more deeply to your relationships, rewarding those who invest in lasting love."
+    ]
+    finance_reasoning_options = [
+        "Jupiter's transit through your money sector brings opportunities for financial expansion and abundance.",
+        "Saturn's discipline in your financial house rewards careful budgeting and long-term investment strategies.",
+        "Mercury's clarity helps you spot financial opportunities that others might overlook this month.",
+        "Venus blesses your financial sector with opportunities through creative ventures and partnerships.",
+        "Mars drives your financial ambition, making this a good month to negotiate raises or pursue new income streams.",
+        "The New Moon in your money sector is ideal for setting financial intentions and starting new savings habits."
+    ]
+    health_reasoning_options = [
+        "The Sun's vitality boosts your physical energy, making this an excellent month to start new wellness routines.",
+        "Saturn encourages discipline in health matters, rewarding consistency and dedication to your wellbeing goals.",
+        "Venus brings a gentle, nurturing influence to your health sector, favoring holistic and pleasurable self-care practices.",
+        "Mars gives you the drive to tackle fitness challenges, but cautions against pushing too hard too fast.",
+        "Mercury highlights the mind-body connection, making mental health practices especially important this month.",
+        "Jupiter expands your health horizons, encouraging you to explore new approaches to wellness and vitality."
+    ]
+    
     return {
         "sign": sign,
         "month": f"{year}-{month:02d}",
@@ -1257,10 +1458,30 @@ def generate_monthly_horoscope(sign: str, year: int, month: int) -> Dict[str, An
         "challenges": pred["challenges"],
         "spirit_animal": pred["spirit_animal"],
         "lucky_days": ["Monday", "Wednesday", "Friday"][hash_val % 3],
-        "career": "Professional growth accelerates this month as the stars align to support your ambitions. New opportunities may emerge through networking, mentorship, or recognition of your past contributions. Stay focused on your long-term vision while remaining flexible enough to adapt to unexpected developments.",
-        "love": "Romance deepens as the month progresses, with meaningful conversations laying the foundation for stronger emotional bonds. Existing relationships benefit from shared experiences that remind you why you chose each other. Single signs may encounter a significant connection through social or creative settings.",
-        "finance": "Financial stability is within reach this month if you combine your natural instincts with careful planning. A opportunity to increase your income or optimize your investments may present itself around mid-month. Avoid major risks and trust in the power of consistent, patient wealth-building.",
-        "health": "Your body is asking for balance this month — enough movement to stay vital, enough rest to restore, and enough nourishment to thrive. Pay attention to recurring signals from your body as they hold messages about areas of your life that need attention. A holistic approach that addresses mental, emotional, and physical wellbeing will serve you best."
+        "confidence_percentage": confidence_percentage,
+        "reasoning": reasoning_options[(hash_val >> 8) % len(reasoning_options)],
+        "best_window": best_window_options[(hash_val >> 12) % len(best_window_options)],
+        "preparation": preparation_options[(hash_val >> 16) % len(preparation_options)],
+        "career": {
+            "prediction": "Professional growth accelerates this month as the stars align to support your ambitions. New opportunities may emerge through networking, mentorship, or recognition of your past contributions. Stay focused on your long-term vision while remaining flexible enough to adapt to unexpected developments.",
+            "confidence": 50 + ((hash_val >> 20) % 46),
+            "reasoning": career_reasoning_options[(hash_val >> 24) % len(career_reasoning_options)]
+        },
+        "love": {
+            "prediction": "Romance deepens as the month progresses, with meaningful conversations laying the foundation for stronger emotional bonds. Existing relationships benefit from shared experiences that remind you why you chose each other. Single signs may encounter a significant connection through social or creative settings.",
+            "confidence": 50 + ((hash_val >> 28) % 46),
+            "reasoning": love_reasoning_options[(hash_val >> 32) % len(love_reasoning_options)]
+        },
+        "finance": {
+            "prediction": "Financial stability is within reach this month if you combine your natural instincts with careful planning. A opportunity to increase your income or optimize your investments may present itself around mid-month. Avoid major risks and trust in the power of consistent, patient wealth-building.",
+            "confidence": 50 + ((hash_val >> 36) % 46),
+            "reasoning": finance_reasoning_options[(hash_val >> 40) % len(finance_reasoning_options)]
+        },
+        "health": {
+            "prediction": "Your body is asking for balance this month \u2014 enough movement to stay vital, enough rest to restore, and enough nourishment to thrive. Pay attention to recurring signals from your body as they hold messages about areas of your life that need attention. A holistic approach that addresses mental, emotional, and physical wellbeing will serve you best.",
+            "confidence": 50 + ((hash_val >> 44) % 46),
+            "reasoning": health_reasoning_options[(hash_val >> 48) % len(health_reasoning_options)]
+        }
     }
 
 def draw_tarot_cards(count: int = 3, question: str = "") -> Dict[str, Any]:
@@ -1850,7 +2071,141 @@ def generate_yearly_predictions(birth_date: str, birth_time: str, latitude: floa
 
     _ad_rating_mod = {
         "Sun": 0, "Moon": 1, "Mars": -1, "Mercury": 1,
-        "Jupiter": 1, "Venus": 1, "Saturn": -1, "Rahu": -1, "Ketu": -1
+        "Jupiter": 1, "Venus": 1, "Saturn": -1, "Rahu": -1,         "Ketu": -1
+    }
+
+    _reasoning_md_career = {
+        "Sun": "Sun (Mahadasha lord) illuminates your career sector, bringing recognition and leadership opportunities",
+        "Moon": "Moon (Mahadasha lord) nurtures your professional environment through emotional intelligence and public appeal",
+        "Mars": "Mars (Mahadasha lord) drives your professional ambition with dynamic energy and competitive spirit",
+        "Mercury": "Mercury (Mahadasha lord) enhances your communication skills and intellectual agility at work",
+        "Jupiter": "Jupiter (Mahadasha lord) expands your career through wisdom, higher learning, and fortunate opportunities",
+        "Venus": "Venus (Mahadasha lord) brings creativity, diplomacy, and harmonious professional relationships to your career",
+        "Saturn": "Saturn (Mahadasha lord) brings discipline and karmic lessons to your career, rewarding patience and persistence",
+        "Rahu": "Rahu (Mahadasha lord) propels your career toward innovation, foreign connections, and unconventional paths",
+        "Ketu": "Ketu (Mahadasha lord) turns your career focus toward research, spirituality, and meaningful detachment from material ambition"
+    }
+    _reasoning_ad_career = {
+        "Sun": "while the Sun (Antardasha lord) adds confidence and professional visibility to your efforts",
+        "Moon": "while the Moon (Antardasha lord) adds emotional depth and public appeal to your professional life",
+        "Mars": "while Mars (Antardasha lord) adds competitive drive and bold initiative to your career pursuits",
+        "Mercury": "while Mercury (Antardasha lord) enhances your networking and communication abilities",
+        "Jupiter": "while Jupiter (Antardasha lord) brings expansion and good fortune to your career path",
+        "Venus": "while Venus (Antardasha lord) adds creative flair and diplomatic skills to your professional interactions",
+        "Saturn": "while Saturn (Antardasha lord) ensures steady, sustainable growth through disciplined effort",
+        "Rahu": "while Rahu (Antardasha lord) brings unexpected breakthroughs and innovative approaches",
+        "Ketu": "while Ketu (Antardasha lord) brings spiritual depth and intuitive wisdom to your decision-making"
+    }
+    _reasoning_md_love = {
+        "Sun": "Sun (Mahadasha lord) radiates warmth and confidence in your romantic life, making you more attractive and charismatic",
+        "Moon": "Moon (Mahadasha lord) deepens emotional sensitivity and nurtures your capacity for intimate connection",
+        "Mars": "Mars (Mahadasha lord) ignites passion and romantic drive, bringing intensity and excitement to relationships",
+        "Mercury": "Mercury (Mahadasha lord) emphasizes intellectual rapport and lively communication in your love life",
+        "Jupiter": "Jupiter (Mahadasha lord) brings expansion and generosity to your relationships, fostering growth and commitment",
+        "Venus": "Venus (Mahadasha lord) blesses your love life with harmony, beauty, and deep romantic fulfillment",
+        "Saturn": "Saturn (Mahadasha lord) brings commitment, maturity, and karmic relationship lessons to your love life",
+        "Rahu": "Rahu (Mahadasha lord) creates magnetic attraction and unexpected romantic opportunities with foreign or unconventional partners",
+        "Ketu": "Ketu (Mahadasha lord) brings spiritual evolution through love, encouraging soul-level connections and releasing past patterns"
+    }
+    _reasoning_ad_love = {
+        "Sun": "while the Sun (Antardasha lord) adds passionate warmth and confident self-expression to your relationships",
+        "Moon": "while the Moon (Antardasha lord) adds emotional depth and nurturing care to your romantic bond",
+        "Mars": "while Mars (Antardasha lord) adds passionate intensity and bold romantic gestures",
+        "Mercury": "while Mercury (Antardasha lord) encourages open communication and intellectual connection in love",
+        "Jupiter": "while Jupiter (Antardasha lord) brings joy, expansion, and a spirit of generosity to your relationship",
+        "Venus": "while Venus (Antardasha lord) enhances romance, sensuality, and affectionate harmony between partners",
+        "Saturn": "while Saturn (Antardasha lord) strengthens commitment and encourages mature, lasting partnership",
+        "Rahu": "while Rahu (Antardasha lord) brings excitement, novelty, and unexpected romantic encounters",
+        "Ketu": "while Ketu (Antardasha lord) fosters spiritual connection and helps release old emotional patterns"
+    }
+    _reasoning_md_finance = {
+        "Sun": "Sun (Mahadasha lord) illuminates your financial potential through career advancement and recognized authority",
+        "Moon": "Moon (Mahadasha lord) links your financial wellbeing to emotional security and intuitive investment decisions",
+        "Mars": "Mars (Mahadasha lord) energizes your earning potential through bold initiatives and competitive drive",
+        "Mercury": "Mercury (Mahadasha lord) sharpens your financial acumen, creating opportunities through communication and intellect",
+        "Jupiter": "Jupiter (Mahadasha lord) expands your wealth through wise investments, education, and generous abundance",
+        "Venus": "Venus (Mahadasha lord) blesses your finances through creative pursuits, social connections, and material comforts",
+        "Saturn": "Saturn (Mahadasha lord) demands financial discipline and patience, building lasting wealth through consistent effort",
+        "Rahu": "Rahu (Mahadasha lord) brings unconventional financial opportunities and sudden gains through innovation",
+        "Ketu": "Ketu (Mahadasha lord) encourages financial detachment and simplifying your relationship with material wealth"
+    }
+    _reasoning_ad_finance = {
+        "Sun": "while the Sun (Antardasha lord) boosts your earning capacity through increased confidence and visibility",
+        "Moon": "while the Moon (Antardasha lord) adds intuitive guidance and emotional balance to your financial decisions",
+        "Mars": "while Mars (Antardasha lord) drives assertive wealth-building actions and calculated financial risks",
+        "Mercury": "while Mercury (Antardasha lord) enhances your ability to negotiate and spot profitable opportunities",
+        "Jupiter": "while Jupiter (Antardasha lord) brings financial expansion through wise investments and fortunate timing",
+        "Venus": "while Venus (Antardasha lord) brings financial gains through social connections and creative ventures",
+        "Saturn": "while Saturn (Antardasha lord) encourages prudent saving and long-term financial planning",
+        "Rahu": "while Rahu (Antardasha lord) brings unexpected income through unconventional or foreign sources",
+        "Ketu": "while Ketu (Antardasha lord) encourages simplifying finances and releasing attachment to material wealth"
+    }
+    _reasoning_md_health = {
+        "Sun": "Sun (Mahadasha lord) governs your vitality and overall life force, strengthening your constitution and immune system",
+        "Moon": "Moon (Mahadasha lord) influences your emotional wellbeing and digestive health through its connection to body rhythms",
+        "Mars": "Mars (Mahadasha lord) governs your physical energy and immune response but can increase inflammation and injury risk",
+        "Mercury": "Mercury (Mahadasha lord) rules your nervous system and communication between body and mind",
+        "Jupiter": "Jupiter (Mahadasha lord) blesses you with robust health but warns against overindulgence affecting the liver",
+        "Venus": "Venus (Mahadasha lord) governs your reproductive system, skin, and overall sense of physical harmony",
+        "Saturn": "Saturn (Mahadasha lord) governs bones, joints, and chronic conditions, demanding disciplined health routines",
+        "Rahu": "Rahu (Mahadasha lord) brings stress-related and hard-to-diagnose health conditions requiring holistic care",
+        "Ketu": "Ketu (Mahadasha lord) turns your attention to spiritual healing and releasing deep-seated health patterns"
+    }
+    _reasoning_ad_health = {
+        "Sun": "while the Sun (Antardasha lord) boosts your vitality and supports cardiovascular health",
+        "Moon": "while the Moon (Antardasha lord) encourages emotional balance and proper rest for overall wellbeing",
+        "Mars": "while Mars (Antardasha lord) energizes your physical fitness but requires caution against accidents",
+        "Mercury": "while Mercury (Antardasha lord) supports nervous system health and mental clarity",
+        "Jupiter": "while Jupiter (Antardasha lord) promotes healing through optimism and holistic health practices",
+        "Venus": "while Venus (Antardasha lord) supports hormonal balance and gentle, pleasurable approaches to health",
+        "Saturn": "while Saturn (Antardasha lord) encourages structural health through consistent routines and bone care",
+        "Rahu": "while Rahu (Antardasha lord) requires vigilance against stress-related and unusual health symptoms",
+        "Ketu": "while Ketu (Antardasha lord) supports deep healing through spiritual practices and detoxification"
+    }
+
+    _career_prep = {
+        "Sun": "Build your public profile and take on leadership roles in the coming months",
+        "Moon": "Trust your intuition in professional matters and nurture your workplace relationships",
+        "Mars": "Channel your competitive drive into strategic career moves and bold initiatives",
+        "Mercury": "Invest in learning new skills and expanding your professional network",
+        "Jupiter": "Pursue educational opportunities and seek mentors who can expand your horizons",
+        "Venus": "Leverage your diplomatic skills and creative talents for career advancement",
+        "Saturn": "Focus on consistent daily discipline and long-term career planning",
+        "Rahu": "Embrace innovation and explore unconventional career paths or foreign opportunities",
+        "Ketu": "Take time for introspection about your true career calling and release ego-driven ambitions"
+    }
+    _love_prep = {
+        "Sun": "Show up with confidence and generosity in your relationships \u2014 your warmth is your greatest asset",
+        "Moon": "Prioritize emotional honesty and create a safe space for vulnerability with your partner",
+        "Mars": "Balance passion with patience \u2014 your drive to connect is powerful, but let love unfold naturally",
+        "Mercury": "Communicate openly and listen deeply \u2014 meaningful conversations are the foundation of love now",
+        "Jupiter": "Plan romantic adventures and shared growth experiences to deepen your bond",
+        "Venus": "Create romantic moments filled with beauty and affection — your natural charm attracts love effortlessly",
+        "Saturn": "Demonstrate your commitment through reliable actions and build trust steadily over time",
+        "Rahu": "Stay grounded in your values while exploring exciting new dimensions of your relationship",
+        "Ketu": "Release old relationship patterns and trust that solitude can be deeply clarifying for your heart"
+    }
+    _finance_prep = {
+        "Sun": "Invest in your professional brand and negotiate your worth \u2014 recognition leads to raises",
+        "Moon": "Create a budget that honors your emotional needs while building a secure financial foundation",
+        "Mars": "Take calculated risks in investments and pursue aggressive savings goals",
+        "Mercury": "Research multiple income streams and consult experts before making financial decisions",
+        "Jupiter": "Invest in education and long-term assets that grow in value over time",
+        "Venus": "Monetize your creative talents and build partnerships that generate shared wealth",
+        "Saturn": "Create a strict savings plan and focus on debt reduction for long-term stability",
+        "Rahu": "Explore innovative investment opportunities but conduct thorough due diligence",
+        "Ketu": "Simplify your finances and clear outstanding debts before making new commitments"
+    }
+    _health_prep = {
+        "Sun": "Prioritize cardiovascular exercise and maintain a consistent sleep schedule for optimal vitality",
+        "Moon": "Focus on emotional wellness through journaling, therapy, or time in nature",
+        "Mars": "Channel excess energy into structured physical activities and warm up properly before exercise",
+        "Mercury": "Practice stress management techniques like meditation and ensure adequate mental rest",
+        "Jupiter": "Adopt a balanced approach to diet and exercise \u2014 moderation is key to sustaining good health",
+        "Venus": "Incorporate gentle movement like yoga or dance and prioritize relaxation and self-care",
+        "Saturn": "Establish consistent health routines with emphasis on bone health and joint care",
+        "Rahu": "Schedule regular health checkups and explore holistic or alternative healing modalities",
+        "Ketu": "Embrace detoxification practices and spiritual healing to release deep-seated imbalances"
     }
 
     import random as _r
@@ -1904,15 +2259,61 @@ def generate_yearly_predictions(birth_date: str, birth_time: str, latitude: floa
         rating = _md_rating_base[md_planet] + _ad_rating_mod[ad_planet]
         rating = max(1, min(10, rating))
 
+        conf_base = 50 + _md_rating_base[md_planet] * 5 + _ad_rating_mod[ad_planet] * 2
+        career_conf = max(10, min(99, conf_base))
+        love_conf = max(10, min(99, conf_base - 2))
+        finance_conf = max(10, min(99, conf_base + 1))
+        health_conf = max(10, min(99, conf_base - 1))
+
+        career_reasoning = _reasoning_md_career[md_planet] + ", while " + _reasoning_ad_career[ad_planet]
+        love_reasoning = _reasoning_md_love[md_planet] + ", while " + _reasoning_ad_love[ad_planet]
+        finance_reasoning = _reasoning_md_finance[md_planet] + ", while " + _reasoning_ad_finance[ad_planet]
+        health_reasoning = _reasoning_md_health[md_planet] + ", while " + _reasoning_ad_health[ad_planet]
+
+        ad_start_abs = md_entry["start"] + sub_cum
+        ad_end_abs = ad_start_abs + sp_years
+        year_start_abs = elapsed + y
+        year_end_abs = year_start_abs + 1
+        window_start = max(ad_start_abs, year_start_abs)
+        window_end = min(ad_end_abs, year_end_abs)
+        start_month = max(1, min(12, int((window_start - year_start_abs) * 12) + 1))
+        end_month = max(1, min(12, int((window_end - year_start_abs) * 12) + 1))
+        _mn = ["", "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+        best_window = f"Peak period: {_mn[start_month]}-{_mn[end_month]} {year_num}"
+
         predictions.append({
             "year": year_num,
             "age": age,
             "mahadasha": md_planet,
             "antardasha": ad_planet,
-            "career_prediction": care,
-            "love_prediction": love,
-            "finance_prediction": fin,
-            "health_prediction": heal,
+            "career": {
+                "prediction": care,
+                "confidence": career_conf,
+                "reasoning": career_reasoning,
+                "best_window": best_window,
+                "preparation": _career_prep[md_planet]
+            },
+            "love": {
+                "prediction": love,
+                "confidence": love_conf,
+                "reasoning": love_reasoning,
+                "best_window": best_window,
+                "preparation": _love_prep[md_planet]
+            },
+            "finance": {
+                "prediction": fin,
+                "confidence": finance_conf,
+                "reasoning": finance_reasoning,
+                "best_window": best_window,
+                "preparation": _finance_prep[md_planet]
+            },
+            "health": {
+                "prediction": heal,
+                "confidence": health_conf,
+                "reasoning": health_reasoning,
+                "best_window": best_window,
+                "preparation": _health_prep[md_planet]
+            },
             "overall_theme": theme,
             "rating": rating
         })
@@ -2169,13 +2570,54 @@ def calculate_wealth_prediction(birth_date: str, birth_time: str, latitude: floa
     for i in range(2):
         property_buying_periods.append(base_year + rng.randint(30 + i * 5, 45 + i * 5))
 
+    confidence_score = max(50, min(wealth_score * 10 + 50, 99))
+
+    venus_contribution = 2 if venus_sign in ["Taurus", "Libra", "Pisces"] else 0
+    jupiter_contribution = 2 if jup_sign in ["Sagittarius", "Pisces"] else 0
+    house_2_contribution = 2 if house_2 in ["Taurus", "Capricorn", "Virgo"] else 0
+    house_11_contribution = 1 if house_11 in ["Sagittarius", "Pisces", "Aries"] else 0
+    mars_contribution = 1 if mars_sign in ["Capricorn", "Aries"] else 0
+    sun_contribution = 1 if sun_sign_val in ["Leo"] else 0
+
+    wealth_reasoning_parts = []
+    if venus_sign:
+        wealth_reasoning_parts.append(f"Venus in {venus_sign}")
+    if jup_sign:
+        wealth_reasoning_parts.append(f"Jupiter in {jup_sign}")
+    if house_2:
+        wealth_reasoning_parts.append(f"2nd house in {house_2}")
+    if house_11:
+        wealth_reasoning_parts.append(f"11th house in {house_11}")
+    reasoning = " + ".join(wealth_reasoning_parts) + f" = {wealth_potential} wealth indicators"
+
+    best_inv = investment_periods[:2]
+    best_investment_window = f"Best investment years: {best_inv[0]}-{best_inv[1]}" if len(best_inv) == 2 else ""
+
+    prep_best = f"ages {best_inv[0]}-{best_inv[1]}" if len(best_inv) == 2 else "the indicated periods"
+    preparation = f"To maximize wealth potential: strengthen your financial discipline, consult a financial advisor, and focus on real estate during {prep_best}"
+
+    score_breakdown = {
+        "venus_contribution": venus_contribution,
+        "jupiter_contribution": jupiter_contribution,
+        "house_2_contribution": house_2_contribution,
+        "house_11_contribution": house_11_contribution,
+        "mars_contribution": mars_contribution,
+        "sun_contribution": sun_contribution,
+        "total": wealth_score
+    }
+
     return {
         "wealth_potential": wealth_potential,
         "investment_periods": investment_periods,
         "loss_periods": loss_periods,
         "lucky_years": lucky_years,
         "property_buying_periods": property_buying_periods,
-        "description": ". ".join(desc_parts) + f". Overall wealth potential is {wealth_potential}."
+        "description": ". ".join(desc_parts) + f". Overall wealth potential is {wealth_potential}.",
+        "confidence_score": confidence_score,
+        "reasoning": reasoning,
+        "best_investment_window": best_investment_window,
+        "preparation": preparation,
+        "score_breakdown": score_breakdown
     }
 
 def calculate_foreign_settlement(birth_date: str, birth_time: str, latitude: float, longitude: float, timezone: str = "UTC") -> Dict[str, Any]:
@@ -2236,11 +2678,51 @@ def calculate_foreign_settlement(birth_date: str, birth_time: str, latitude: flo
                   base_year + _rf.Random(f"{birth_date}f2").randint(32, 40),
                   base_year + _rf.Random(f"{birth_date}f3").randint(42, 50)]
 
+    confidence_level = "high" if score >= 70 else "medium" if score >= 40 else "low"
+
+    foreign_reasoning_parts = []
+    if house_12:
+        foreign_reasoning_parts.append(f"12th house in {house_12}")
+    if rahu_sign:
+        foreign_reasoning_parts.append(f"Rahu in {rahu_sign}")
+    if moon_sign:
+        foreign_reasoning_parts.append(f"Moon in {moon_sign}")
+    reasoning = " + ".join(foreign_reasoning_parts) + f" creates {confidence_level} foreign settlement potential"
+
+    best_years_sorted = sorted(best_years)
+    best_window = f"Most favorable period: ages {best_years_sorted[0]}-{best_years_sorted[-1]}" if best_years_sorted else ""
+
+    preparation = f"To increase foreign settlement chances: strengthen connections abroad, learn new languages, and explore opportunities during {best_window}"
+
+    twelfth_house_contribution = 20 if house_12 in ["Pisces", "Sagittarius", "Aquarius"] else 0
+    ninth_house_contribution = 15 if house_9 in ["Sagittarius", "Pisces"] else 0
+    rahu_contribution = 15 if rahu_sign in ["Aquarius", "Pisces", "Gemini"] else 0
+    moon_contribution = 10 if moon_sign in ["Gemini", "Sagittarius", "Aquarius"] else 0
+    jupiter_contribution_fs = 10 if jup_sign in ["Sagittarius", "Pisces"] else 0
+    saturn_contribution_fs = 5 if sat_sign in ["Aquarius", "Capricorn"] else 0
+    same_house_bonus = 10 if house_9 == house_12 else 0
+
+    factor_breakdown = {
+        "twelfth_house_contribution": twelfth_house_contribution,
+        "ninth_house_contribution": ninth_house_contribution,
+        "rahu_contribution": rahu_contribution,
+        "moon_contribution": moon_contribution,
+        "jupiter_contribution": jupiter_contribution_fs,
+        "saturn_contribution": saturn_contribution_fs,
+        "same_house_bonus": same_house_bonus,
+        "total": score
+    }
+
     return {
         "probability_score": score,
         "best_years": best_years,
         "country_direction": country_hints[0] if country_hints else "west",
-        "description": ". ".join(desc_parts) + f". Foreign settlement probability: {score}%."
+        "description": ". ".join(desc_parts) + f". Foreign settlement probability: {score}%.",
+        "confidence_level": confidence_level,
+        "reasoning": reasoning,
+        "best_window": best_window,
+        "preparation": preparation,
+        "factor_breakdown": factor_breakdown
     }
 
 def check_manglik(chart: Dict) -> Dict[str, Any]:
