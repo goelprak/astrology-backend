@@ -5,6 +5,7 @@ from datetime import datetime
 from pydantic import BaseModel
 import spellfix
 import astrology
+import translations
 import os
 
 app = FastAPI(title="Astrology API")
@@ -20,6 +21,7 @@ class WealthRequest(BaseModel):
     latitude: float
     longitude: float
     timezone: str = "Asia/Kolkata"
+    language: str = "en"
 
 class ForeignSettlementRequest(BaseModel):
     birth_date: str
@@ -27,10 +29,12 @@ class ForeignSettlementRequest(BaseModel):
     latitude: float
     longitude: float
     timezone: str = "Asia/Kolkata"
+    language: str = "en"
 
 class ManglikRequest(BaseModel):
     chart1: dict
     chart2: dict = None
+    language: str = "en"
 
 class NavamsaRequest(BaseModel):
     birth_date: str
@@ -38,10 +42,12 @@ class NavamsaRequest(BaseModel):
     latitude: float
     longitude: float
     timezone: str = "Asia/Kolkata"
+    language: str = "en"
 
 class NameCorrectionRequest(BaseModel):
     name: str
     birth_date: str = ""
+    language: str = "en"
 
 class RemediesRequest(BaseModel):
     birth_date: str
@@ -49,6 +55,7 @@ class RemediesRequest(BaseModel):
     latitude: float
     longitude: float
     timezone: str = "Asia/Kolkata"
+    language: str = "en"
 
 class LifeTimelineRequest(BaseModel):
     birth_date: str
@@ -56,6 +63,7 @@ class LifeTimelineRequest(BaseModel):
     latitude: float
     longitude: float
     timezone: str = "Asia/Kolkata"
+    language: str = "en"
 
 class PdfReportRequest(BaseModel):
     birth_date: str
@@ -63,6 +71,7 @@ class PdfReportRequest(BaseModel):
     latitude: float
     longitude: float
     timezone: str = "Asia/Kolkata"
+    language: str = "en"
 
 class NatalChartRequest(BaseModel):
     birth_date: str
@@ -70,22 +79,27 @@ class NatalChartRequest(BaseModel):
     latitude: float
     longitude: float
     timezone: str = "UTC"
+    language: str = "en"
 
 class CompatibilityRequest(BaseModel):
     chart1: dict
     chart2: dict
+    language: str = "en"
 
 class NumerologyRequest(BaseModel):
     name: str
     birth_date: str
+    language: str = "en"
 
 class TarotRequest(BaseModel):
     count: int = 3
     question: str = ""
+    language: str = "en"
 
 class MuhuratRequest(BaseModel):
     date: str
     city: str = "Delhi"
+    language: str = "en"
 
 class YearlyPredictionRequest(BaseModel):
     birth_date: str
@@ -94,6 +108,7 @@ class YearlyPredictionRequest(BaseModel):
     longitude: float
     timezone: str = "UTC"
     years: int = 10
+    language: str = "en"
 
 app.add_middleware(
     CORSMiddleware,
@@ -357,7 +372,7 @@ aliases = {
     "pisces": "pisces", "meen": "pisces", "fish": "pisces"
 }
 
-def build_personalized_response(msg_lower, chart, name):
+def build_personalized_response(msg_lower, chart, name, lang="en"):
     try:
         analysis = astrology.generate_detailed_analysis(chart)
         sun = chart.get("sun_sign", "Unknown")
@@ -369,8 +384,16 @@ def build_personalized_response(msg_lower, chart, name):
         # Normalize misspellings via fuzzy matching
         msg_lower = spellfix.correct_spelling(msg_lower)
 
+        # Helper: translate astrological terms and return Hindi if needed
+        def t(text):
+            if lang != "hi":
+                return text
+            return translations.translate_sign_planet(text, "hi")
+
         if any(w in msg_lower for w in ["my birth chart", "my chart", "my kundli", "about my chart"]):
             planets_str = "; ".join([f"{p}: {d.get('sign', '?')} {d.get('degree', 0):.1f}°" for p, d in planets.items()])
+            if lang == "hi":
+                return translations.CHART_ANALYSIS_HI.format(name=nname, sun=translations.SIGNS_HI.get(sun, sun), moon=translations.SIGNS_HI.get(moon, moon), asc=translations.SIGNS_HI.get(asc, asc), planets=t(planets_str), summary=t(analysis.get('summary', '')))
             return f"{nname}, here is your birth chart analysis. Your Sun sign is {sun} (identity, ego, life purpose). Your Moon sign is {moon} (emotions, subconscious, inner self). Your Ascendant/Rising sign is {asc} (outward personality, how others see you). Planetary positions: {planets_str}. {analysis.get('summary', '')}"
 
         if any(w in msg_lower for w in ["youtube", "you tube", "yt", "blogger", "blogging", "content creator", "influencer", "social media", "vlogger", "vlogging"]):
@@ -381,6 +404,11 @@ def build_personalized_response(msg_lower, chart, name):
             mer_comm = "strong" if mer in ['Gemini', 'Virgo', 'Libra'] else "moderate"
             ven_show = "strong" if ven in ['Leo', 'Libra', 'Pisces'] else "moderate"
             yes_no = "yes, your chart supports it" if mer_comm == "strong" and tenth == "Air" else "yes, with focused effort" if mer_comm != "weak" else "it's possible but requires extra dedication"
+            if lang == "hi":
+                mer_comm_hi = "मजबूत" if mer_comm == "strong" else "मध्यम"
+                ven_show_hi = "मजबूत" if ven_show == "strong" else "मध्यम"
+                yes_no_hi = "हाँ, आपकी कुंडली इसे समर्थन करती है" if "yes" in yes_no and "focused" not in yes_no and "possible" not in yes_no else "हाँ, केंद्रित प्रयास से" if "focused" in yes_no else "संभव है लेकिन अतिरिक्त समर्पण चाहिए"
+                return translations.YOUTUBE_HI.format(name=nname, mer=t(mer), mer_comm=mer_comm_hi, ven=t(ven), ven_show=ven_show_hi, yes_no=yes_no_hi, element=t(tenth))
             return f"{nname}, regarding {msg_lower.split('as')[-1] if 'as' in msg_lower else 'content creation'} as a career: {yes_no}. Your Mercury in {mer} gives you {mer_comm} communication skills {'— ideal for scripting, presenting, and engaging with an audience' if mer_comm == 'strong' else '— you may need to work on consistent content creation'}. Venus in {ven} indicates {ven_show} creative and aesthetic sense {'that will attract viewers through visual appeal and charm' if ven_show == 'strong' else '— consider collaborating for production quality'}. Your 3rd house (communication) and 5th house (creativity) placements will play key roles in your success. Confidence: 78%. Best timing: Start building your channel now and you will see meaningful growth within 6-8 months. Preparation: Focus on a niche that combines your knowledge with your natural {tenth.lower()} energy — educational, lifestyle, or creative content suits your chart."
 
         if any(w in msg_lower for w in ["cricket", "cric ter", "cricter", "cricketer", "cricketer", "sports", "sport", "athlete", "athletic", "player", "football", "soccer", "basketball", "tennis"]):
@@ -391,6 +419,11 @@ def build_personalized_response(msg_lower, chart, name):
             mars_str = "strong" if mars in ['Aries', 'Scorpio', 'Capricorn'] else "moderate"
             sun_str = "strong" if sun in ['Leo', 'Aries', 'Sagittarius'] else "moderate"
             yes_no = "yes, your chart shows athletic potential" if mars_str == "strong" and sun_str == "strong" else "yes, with training and discipline" if mars_str != "weak" else "it's possible but requires extra physical conditioning"
+            if lang == "hi":
+                mars_str_hi = "मजबूत" if mars_str == "strong" else "मध्यम"
+                sun_str_hi = "मजबूत" if sun_str == "strong" else "मध्यम"
+                yes_no_hi = "हाँ, आपकी कुंडली में एथलेटिक क्षमता है" if "athletic" in yes_no else "हाँ, प्रशिक्षण और अनुशासन से" if "training" in yes_no else "संभव है लेकिन अतिरिक्त शारीरिक परिश्रम चाहिए"
+                return translations.SPORTS_HI.format(name=nname, mars=t(mars), mars_str=mars_str_hi, sun=t(sun), sun_str=sun_str_hi, yes_no=yes_no_hi)
             return f"{nname}, regarding sports as a career: {yes_no}. Your Mars in {mars} gives you {mars_str} physical drive and competitiveness {'— a natural advantage for sports requiring stamina and aggression' if mars_str == 'strong' else '— consistency in training will be key'}. Your Sun in {sun} indicates {sun_str} leadership and confidence {'that helps in high-pressure sports environments' if sun_str == 'strong' else '— building self-belief through practice is important'}. Saturn in {sat} influences your discipline and long-term athletic development. Confidence: 80%. Best timing: The next 12-18 months are favorable for starting serious training. Preparation: Focus on building endurance and technical skills before competitive matches."
 
         if any(w in msg_lower for w in ["my career", "my job", "my profession", "career for me", "what should i do for work", "will i get promoted", "promotion", "job change", "career growth", "professional", "work life", "get promoted", "career", "carrier", "business", "startup", "entrepreneur", "side hustle", "freelance", "new job", "should i start", "can i start", "thinking of starting", "want to start", "work from home", "online business"]):
@@ -399,6 +432,8 @@ def build_personalized_response(msg_lower, chart, name):
             car_reason = analysis.get("career_reasoning", "Jupiter strengthens your 10th house while Saturn supports long-term growth")
             car_window = analysis.get("best_timing_career", "August-November")
             car_prep = analysis.get("preparation_career", "Focus on leadership responsibilities")
+            if lang == "hi":
+                return translations.CAREER_HI.format(name=nname, element=t(analysis.get('element', '')), career='; '.join(career), confidence=car_conf, conf_label=translations.confidence_hi(car_conf), reasoning=t(car_reason), best_window=translations.timing_hi(car_window), preparation=t(car_prep))
             return f"{nname}, based on your birth chart: your Sun in {sun} indicates natural career strengths. Key career indications for you: {'; '.join(career)}. Your chart shows you would excel in fields that align with your {analysis.get('element', '')} energy and {analysis.get('quality', '')} nature. Confidence: {car_conf}%. Reasoning: {car_reason}. Best window for career moves: {car_window}. Preparation: {car_prep}."
 
         if any(w in msg_lower for w in ["my love", "my relationship", "my romance", "love life", "compatibility", "get married", "marriage", "will i find love", "when will i get married", "partner", "soulmate", "relationship", "love", "when will i marry"]):
@@ -408,11 +443,16 @@ def build_personalized_response(msg_lower, chart, name):
             love_reason = analysis.get("love_reasoning", f"Your Venus in {venus_sign} with current planetary aspects creates favorable relationship timing")
             love_window = analysis.get("best_timing_love", "favorable periods indicated in your chart")
             love_prep = analysis.get("preparation_love", "Focus on open communication and emotional vulnerability")
-            return f"{nname}, regarding love and relationships: {'; '.join(rel)}. Your Moon in {moon} shows you need emotional security through {'intuitive understanding' if moon in ['Cancer', 'Scorpio', 'Pisces'] else 'practical stability' if moon in ['Taurus', 'Virgo', 'Capricorn'] else 'intellectual connection' if moon in ['Gemini', 'Libra', 'Aquarius'] else 'passionate excitement'}. Venus in {venus_sign} reveals your love language and what you value in a partner. Confidence: {love_conf}%. Reasoning: {love_reason}. Best window for relationship growth: {love_window}. Preparation: {love_prep}."
+            moon_needs = {'Cancer': 'intuitive understanding', 'Scorpio': 'intuitive understanding', 'Pisces': 'intuitive understanding', 'Taurus': 'practical stability', 'Virgo': 'practical stability', 'Capricorn': 'practical stability', 'Gemini': 'intellectual connection', 'Libra': 'intellectual connection', 'Aquarius': 'intellectual connection'}
+            if lang == "hi":
+                return translations.LOVE_HI.format(name=nname, sign=t(venus_sign), confidence=love_conf, conf_label=translations.confidence_hi(love_conf), reasoning=t(love_reason), best_window=translations.timing_hi(love_window), preparation=t(love_prep))
+            return f"{nname}, regarding love and relationships: {'; '.join(rel)}. Your Moon in {moon} shows you need emotional security through {moon_needs.get(moon, 'connection')}. Venus in {venus_sign} reveals your love language and what you value in a partner. Confidence: {love_conf}%. Reasoning: {love_reason}. Best window for relationship growth: {love_window}. Preparation: {love_prep}."
 
         if any(w in msg_lower for w in ["my strength", "my weakness", "strength and weakness", "good at", "bad at", "strengths", "weaknesses", "what am i good at"]):
             strengths = analysis.get("strengths", ["Natural talents"])
             challenges = analysis.get("challenges", ["Areas for growth"])
+            if lang == "hi":
+                return f"{nname}, आपकी जन्म कुंडली के अनुसार आपकी ताकत: {'; '.join(strengths)}. विकास के क्षेत्र: {'; '.join(challenges) if challenges else 'आपकी कुंडली में सभी क्षेत्रों में संतुलित ऊर्जा है'}."
             return f"{nname}, your birth chart reveals these strengths: {'; '.join(strengths)}. Areas for growth: {'; '.join(challenges) if challenges else 'Your chart shows balanced energy across all areas.'}. Your Sun in {sun} gives you the core drive of a {sun.lower()}, which brings both gifts and lessons."
 
         if any(w in msg_lower for w in ["my health", "my body", "health for me", "wellness", "health", "sick", "disease", "well being", "healthy"]):
@@ -422,30 +462,52 @@ def build_personalized_response(msg_lower, chart, name):
             hlth_reason = analysis.get("health_reasoning", f"Your Moon in {moon} and 6th house in {sixth_sign} indicate health patterns")
             hlth_window = analysis.get("best_timing_health", "the coming months")
             hlth_prep = analysis.get("preparation_health", "Establish consistent wellness routines")
+            if lang == "hi":
+                return translations.HEALTH_HI.format(name=nname, sign=t(sixth_sign), confidence=hlth_conf, conf_label=translations.confidence_hi(hlth_conf), reasoning=t(hlth_reason), best_window=translations.timing_hi(hlth_window), preparation=t(hlth_prep))
             return f"{nname}, health insights from your chart: {'; '.join(health)}. Your Sun in {sun} suggests paying attention to health areas related to that sign. For personalized health recommendations, consider your complete chart and consult with a healthcare professional. Confidence: {hlth_conf}%. Reasoning: {hlth_reason}. Best focus period: {hlth_window}. Preparation: {hlth_prep}."
 
         if any(w in msg_lower for w in ["my finance", "my money", "my wealth", "rich", "wealth", "financial", "money", "finance", "investment", "property", "wealthy"]):
             fin = analysis.get("finance", ["Financial stability is indicated in your chart"])
+            if lang == "hi":
+                return translations.FINANCE_HI.format(name=nname, sign=t(planets.get('Jupiter', {}).get('sign', 'धनु')), confidence=75, conf_label="उच्च", reasoning=t("Your 2nd house wealth and 11th house gains with Jupiter and Venus shape your financial prospects"), best_window="अगले कुछ महीने", preparation=t("बचत और निवेश पर ध्यान दें"))
             return f"{nname}, regarding finances: Your 2nd house (wealth) and 11th house (gains) combined with Jupiter and Venus placements shape your financial prospects. {' '.join(fin) if isinstance(fin, list) else fin} For a detailed wealth analysis, visit the Wealth Prediction tab."
 
         if any(w in msg_lower for w in ["my future", "future", "what will happen", "prediction", "predict", "upcoming", "what is in store", "destiny"]):
+            if lang == "hi":
+                dasha_name = "?"
+                try:
+                    d = astrology.calculate_vimshottari_dasha(chart.get("birth_date", ""), chart.get("birth_time", ""), chart.get("latitude", 0), chart.get("longitude", 0))
+                    dasha_name = d.get("current_dasha", "?")
+                except: pass
+                return translations.FUTURE_HI.format(name=nname, element=t(analysis.get('element', 'वायु')), dasha=t(dasha_name), career_direction=t('; '.join(analysis.get('career', ['Professional growth']))))
             return f"{nname}, based on your birth chart analysis: Your Sun in {sun} drives your life purpose. You are currently in a period influenced by your {planets.get('Sun', {}).get('sign', sun)} Sun and {moon} Moon. Key life areas to focus on: {'; '.join(analysis.get('career', ['Professional growth']))}. For detailed future predictions, visit the 10-Year Predictions tab with year-by-year analysis."
 
         if any(w in msg_lower for w in ["my sun sign", "my sun"]):
             info = zodiac_info.get(sun.lower(), "")
+            if lang == "hi":
+                sinfo = t(info[:200]) + ("..." if len(info) > 200 else "")
+                return f"{nname}, आपकी सूर्य राशि {translations.SIGNS_HI.get(sun, sun)} है। {sinfo}"
             return f"{nname}, your Sun sign is {sun}. {info}"
 
         if any(w in msg_lower for w in ["my moon sign", "my moon"]):
             info = zodiac_info.get(moon.lower(), "")
+            if lang == "hi":
+                minfo = t(info[:200]) + ("..." if len(info) > 200 else "")
+                return f"{nname}, आपकी चंद्र राशि {translations.SIGNS_HI.get(moon, moon)} है। {minfo}"
             return f"{nname}, your Moon sign is {moon}. {info}"
 
         if any(w in msg_lower for w in ["my rising", "my ascendant", "my rising sign"]):
             info = zodiac_info.get(asc.lower(), "")
+            if lang == "hi":
+                ainfo = t(info[:200]) + ("..." if len(info) > 200 else "")
+                return f"{nname}, आपकी लग्न राशि {translations.SIGNS_HI.get(asc, asc)} है। {ainfo}"
             return f"{nname}, your Rising sign (Ascendant) is {asc}. {info}"
 
         if any(w in msg_lower for w in ["my numerology", "my life path", "my destiny number", "my soul urge", "tell my numbers"]):
             try:
                 num = astrology.calculate_numerology(nname if nname != "there" else "User", chart.get("birth_date", ""))
+                if lang == "hi":
+                    return f"{nname}, आपकी पूर्ण अंक ज्योतिष प्रोफ़ाइल: जीवन पथ अंक {num.get('life_path', '?')} ({t(str(num.get('life_path_meaning', '')))}). भाग्य अंक {num.get('destiny', '?')} ({t(str(num.get('destiny_meaning', '')))}). आत्मा अंक {num.get('soul_urge', '?')} ({t(str(num.get('soul_urge_meaning', '')))}). व्यक्तित्व अंक {num.get('personality', '?')} ({t(str(num.get('personality_meaning', '')))}). वर्तमान व्यक्तिगत वर्ष: {num.get('personal_year', '?')} ({t(str(num.get('personal_year_meaning', '')))})."
                 return f"{nname}, here is your complete numerology profile: Life Path Number {num.get('life_path', '?')} ({num.get('life_path_meaning', 'Your life journey')}). Destiny Number {num.get('destiny', '?')} ({num.get('destiny_meaning', 'Your purpose')}). Soul Urge Number {num.get('soul_urge', '?')} ({num.get('soul_urge_meaning', 'Inner desires')}). Personality Number {num.get('personality', '?')} ({num.get('personality_meaning', 'How others see you')}). Current Personal Year: {num.get('personal_year', '?')} ({num.get('personal_year_meaning', 'Your theme for this year')})."
             except:
                 return f"{nname}, I can look up your numerology if you provide your full birth date and name in the Profile tab."
@@ -457,6 +519,8 @@ def build_personalized_response(msg_lower, chart, name):
                 nak = kp.get("planets", {}).get("Moon", {}).get("nakshatra", "?")
                 lord = dasha.get("moon_nakshatra_lord", "?")
                 current = dasha.get("current_dasha", "?")
+                if lang == "hi":
+                    return f"{nname}, आपका चंद्रमा {t(nak)} नक्षत्र में है जिसके स्वामी {t(lord)} हैं। आप वर्तमान में {t(current)} महादशा से गुज़र रहे हैं। {t(dasha.get('message', ''))} विस्तृत दशा भविष्यवाणियों के लिए KP दशा टैब पर जाएं।"
                 return f"{nname}, your Moon is in {nak} Nakshatra ruled by {lord}. You are currently running {current} Mahadasha. {dasha.get('message', '')} For detailed dasha predictions, visit the KP Dasha tab."
             except:
                 return f"{nname}, I can calculate your current dasha periods if you provide your complete birth details in the Profile tab."
@@ -465,8 +529,13 @@ def build_personalized_response(msg_lower, chart, name):
             sun_lower = sun.lower()
             gem_map = {"aries": "Red Coral", "taurus": "Emerald or Diamond", "gemini": "Emerald", "cancer": "Pearl", "leo": "Ruby", "virgo": "Sapphire", "libra": "Opal", "scorpio": "Topaz", "sagittarius": "Turquoise or Yellow Sapphire", "capricorn": "Garnet or Blue Sapphire", "aquarius": "Amethyst", "pisces": "Jade or Moonstone"}
             gem = gem_map.get(sun_lower, "a gemstone suitable for your chart")
+            gem_hi = {"Red Coral": "मूंगा", "Emerald or Diamond": "पन्ना या हीरा", "Emerald": "पन्ना", "Pearl": "मोती", "Ruby": "माणिक", "Sapphire": "नीलम", "Opal": "ओपल", "Topaz": "पुखराज", "Turquoise or Yellow Sapphire": "फ़िरोज़ा या पीला नीलम", "Garnet or Blue Sapphire": "गार्नेट या नीला नीलम", "Amethyst": "कटैला", "Jade or Moonstone": "जेड या चंद्रकांत"}
+            if lang == "hi":
+                return f"{nname}, आपकी सूर्य राशि {translations.SIGNS_HI.get(sun, sun)} के अनुसार, अनुशंसित रत्न {gem_hi.get(gem, gem)} है। सटीक रत्न चयन के लिए पूर्ण कुंडली विश्लेषण आवश्यक है। उपाय टैब पर जाएं।"
             return f"{nname}, based on your Sun sign {sun}, a recommended gemstone is {gem}. However, for accurate gemstone selection, a complete chart analysis is needed considering planetary strengths, dignity, and current dasha periods. Visit the Remedies tab for a full analysis."
 
+        if lang == "hi":
+            return translations.GENERAL_HI.format(name=nname, sun=translations.SIGNS_HI.get(sun, sun), moon=translations.SIGNS_HI.get(moon, moon), asc=translations.SIGNS_HI.get(asc, asc), element=t(analysis.get('element', 'वायु')), house=t("प्रथम, चतुर्थ, सप्तम एवं दशम"))
         return f"{nname}, based on your birth chart: Your {sun} Sun drives your core identity, and your {moon} Moon shapes your emotional world. With {asc} rising, you present yourself with a {asc.lower()} demeanor. Career-wise, your Mercury in {planets.get('Mercury', {}).get('sign', 'a communicative sign')} influences your professional communication style. This is a good time to explore paths that align with your natural strengths. For more specific answers, try asking directly about career, love, health, or visit the relevant tab for detailed predictions."
     except:
         return None
@@ -485,6 +554,7 @@ async def ai_chat(request: Request):
         msg = data.get("message", "") if data else ""
         birth_data = data.get("birth_data", None) if data else None
         tab_context = data.get("tab_context", {}) if data else {}
+        lang = data.get("language", "en") if data else "en"
 
         if not msg:
             return {"response": "Please provide a message"}
@@ -503,7 +573,7 @@ async def ai_chat(request: Request):
                         chart["birth_time"] = bd["birthTime"]
                         chart["latitude"] = float(bd.get("latitude", 28.6139))
                         chart["longitude"] = float(bd.get("longitude", 77.209))
-                        personalized = build_personalized_response(msg_lower, chart, bd.get("name", ""))
+                        personalized = build_personalized_response(msg_lower, chart, bd.get("name", ""), lang)
                         if personalized:
                             return {"response": personalized}
             except Exception as e:
