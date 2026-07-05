@@ -2486,14 +2486,19 @@ def calculate_panchang(date_str: str, latitude: float, longitude: float) -> Dict
     rahu_start_hour = (sunrise_hour + 8.0) % 24
     rahu_end_hour = (rahu_start_hour + 1.5) % 24
 
+    tithi_start_hour = (sunrise_hour + tithi_index * 0.8) % 24
+    tithi_end_hour = (tithi_start_hour + 0.8) % 24
+
     return {
-        "tithi": {"name": tithi_name, "index": tithi_index + 1, "description": f"Tithi is {tithi_name} - the {tithi_index + 1}{'st' if tithi_index == 0 else 'nd' if tithi_index == 1 else 'rd' if tithi_index == 2 else 'th'} lunar phase"},
+        "tithi": {"name": tithi_name, "index": tithi_index + 1, "description": f"Tithi is {tithi_name} - the {tithi_index + 1}{'st' if tithi_index == 0 else 'nd' if tithi_index == 1 else 'rd' if tithi_index == 2 else 'th'} lunar phase", "start_time": f"{int(tithi_start_hour):02d}:{int((tithi_start_hour % 1) * 60):02d}", "end_time": f"{int(tithi_end_hour):02d}:{int((tithi_end_hour % 1) * 60):02d}"},
         "yoga": {"name": yoga_name, "index": yoga_index + 1, "description": f"Yoga is {yoga_name} - the {yoga_index + 1}{'st' if yoga_index == 0 else 'nd' if yoga_index == 1 else 'rd' if yoga_index == 2 else 'th'} of 27 yogas"},
         "karana": {"name": karana_name, "index": karana_index + 1, "description": f"Karana is {karana_name}"},
-        "abhijit_muhurat": {"start": f"{int(abhijit_start):02d}:{int((abhijit_start % 1) * 60):02d}", "end": f"{int(abhijit_end):02d}:{int((abhijit_end % 1) * 60):02d}", "description": "48-minute auspicious window around solar noon"},
+        "abhijit_muhurat": f"{int(abhijit_start):02d}:{int((abhijit_start % 1) * 60):02d} - {int(abhijit_end):02d}:{int((abhijit_end % 1) * 60):02d}",
         "sunrise": sunrise_str,
         "sunset": sunset_str,
-        "rahu_kaal": {"start": f"{int(rahu_start_hour):02d}:{int((rahu_start_hour % 1) * 60):02d}", "end": f"{int(rahu_end_hour):02d}:{int((rahu_end_hour % 1) * 60):02d}", "description": "Inauspicious period ruled by Rahu"}
+        "rahu_kaal": f"{int(rahu_start_hour):02d}:{int((rahu_start_hour % 1) * 60):02d} - {int(rahu_end_hour):02d}:{int((rahu_end_hour % 1) * 60):02d}",
+        "date": date_str,
+        "city": "Custom Location"
     }
 
 def calculate_wealth_prediction(birth_date: str, birth_time: str, latitude: float, longitude: float, timezone: str = "UTC") -> Dict[str, Any]:
