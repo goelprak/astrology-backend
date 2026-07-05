@@ -8,6 +8,67 @@ import os
 
 app = FastAPI(title="Astrology API")
 
+class PanchangRequest(BaseModel):
+    date: str
+    latitude: float = 28.6139
+    longitude: float = 77.209
+
+class WealthRequest(BaseModel):
+    birth_date: str
+    birth_time: str
+    latitude: float
+    longitude: float
+    timezone: str = "Asia/Kolkata"
+
+class ForeignSettlementRequest(BaseModel):
+    birth_date: str
+    birth_time: str
+    latitude: float
+    longitude: float
+    timezone: str = "Asia/Kolkata"
+
+class ManglikRequest(BaseModel):
+    chart1: dict
+    chart2: dict = None
+
+class NavamsaRequest(BaseModel):
+    birth_date: str
+    birth_time: str
+    latitude: float
+    longitude: float
+    timezone: str = "Asia/Kolkata"
+
+class FestivalRequest(BaseModel):
+    year: int = 2026
+
+class NameCorrectionRequest(BaseModel):
+    name: str
+    birth_date: str = ""
+
+class RemediesRequest(BaseModel):
+    birth_date: str
+    birth_time: str
+    latitude: float
+    longitude: float
+    timezone: str = "Asia/Kolkata"
+
+class LifeTimelineRequest(BaseModel):
+    birth_date: str
+    birth_time: str
+    latitude: float
+    longitude: float
+    timezone: str = "Asia/Kolkata"
+
+class FaceReadingRequest(BaseModel):
+    features: dict
+
+class PdfReportRequest(BaseModel):
+    birth_date: str
+    birth_time: str
+    latitude: float
+    longitude: float
+    timezone: str = "Asia/Kolkata"
+
 class NatalChartRequest(BaseModel):
     birth_date: str
     birth_time: str
@@ -188,6 +249,98 @@ class HoraryRequest(BaseModel):
 async def get_kp_horary(request: HoraryRequest):
     try:
         result = astrology.calculate_horary_kp(request.question, request.question_date, request.question_time, request.latitude, request.longitude)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/astrology/panchang")
+async def get_panchang(request: PanchangRequest):
+    try:
+        result = astrology.calculate_panchang(request.date, request.latitude, request.longitude)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/astrology/wealth-prediction")
+async def get_wealth_prediction(request: WealthRequest):
+    try:
+        result = astrology.calculate_wealth_prediction(request.birth_date, request.birth_time, request.latitude, request.longitude, request.timezone)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/astrology/foreign-settlement")
+async def get_foreign_settlement(request: ForeignSettlementRequest):
+    try:
+        result = astrology.calculate_foreign_settlement(request.birth_date, request.birth_time, request.latitude, request.longitude, request.timezone)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/astrology/check-manglik")
+async def get_manglik(request: ManglikRequest):
+    try:
+        result = astrology.check_manglik(request.chart1)
+        if request.chart2:
+            result2 = astrology.check_manglik(request.chart2)
+            result["chart2"] = result2
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/astrology/navamsa-chart")
+async def get_navamsa_chart(request: NavamsaRequest):
+    try:
+        result = astrology.calculate_navamsa_chart(request.birth_date, request.birth_time, request.latitude, request.longitude, request.timezone)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/astrology/festival-calendar")
+async def get_festival_calendar(request: FestivalRequest):
+    try:
+        result = astrology.calculate_festival_calendar(request.year)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/astrology/name-correction")
+async def get_name_correction(request: NameCorrectionRequest):
+    try:
+        result = astrology.calculate_name_correction(request.name, request.birth_date)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/astrology/remedies-detailed")
+async def get_remedies_detailed(request: RemediesRequest):
+    try:
+        chart = astrology.calculate_natal_chart(request.birth_date, request.birth_time, request.latitude, request.longitude, request.timezone)
+        result = astrology.calculate_remedies(chart)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/astrology/life-timeline")
+async def get_life_timeline(request: LifeTimelineRequest):
+    try:
+        result = astrology.calculate_life_timeline(request.birth_date, request.birth_time, request.latitude, request.longitude, request.timezone)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/astrology/face-reading")
+async def get_face_reading(request: FaceReadingRequest):
+    try:
+        result = astrology.calculate_face_reading(request.features)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/astrology/pdf-report")
+async def get_pdf_report(request: PdfReportRequest):
+    try:
+        result = astrology.generate_pdf_report(request.birth_date, request.birth_time, request.latitude, request.longitude, request.timezone)
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

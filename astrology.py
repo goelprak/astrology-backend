@@ -2040,3 +2040,660 @@ def determine_horary_answer(chart: Dict, question: str) -> Dict:
         "moon_nakshatra": moon_nakshatra,
         "verdict": f"Based on KP System: The {sign} house and {significator} are important. {desc} Moon is in {moon_nakshatra} ({moon_lord})."
     }
+
+def calculate_panchang(date_str: str, latitude: float, longitude: float) -> Dict[str, Any]:
+    try:
+        dt = datetime.fromisoformat(date_str)
+    except:
+        dt = datetime.strptime(date_str, "%Y-%m-%d")
+    jd = datetime_to_julian_day(dt)
+    positions = calculate_planet_positions(jd, latitude, longitude)
+    sun_deg = positions.get("Sun", 0)
+    moon_deg = positions.get("Moon", 0)
+
+    tithi_index = int(((moon_deg - sun_deg) % 360) // 12)
+    tithi_names = [
+        "Pratipada", "Dwitiya", "Tritiya", "Chaturthi", "Panchami",
+        "Shashthi", "Saptami", "Ashtami", "Navami", "Dashami",
+        "Ekadashi", "Dwadashi", "Trayodashi", "Chaturdashi", "Purnima/Amavasya"
+    ]
+    tithi_name = tithi_names[tithi_index] if tithi_index < len(tithi_names) else "Unknown"
+
+    yoga_index = int(((moon_deg + sun_deg) % 360) // 13.333) % 27
+    yoga_names = [
+        "Vishkumbha", "Preeti", "Ayushman", "Saubhagya", "Shobhana",
+        "Atiganda", "Sukarman", "Dhriti", "Shula", "Ganda",
+        "Vriddhi", "Dhruva", "Vyaghata", "Harshana", "Vajra",
+        "Siddhi", "Vyatipata", "Variyana", "Parigha", "Shiva",
+        "Siddha", "Sadhya", "Shubha", "Shukla", "Brahma",
+        "Indra", "Vaidhriti"
+    ]
+    yoga_name = yoga_names[yoga_index]
+
+    karana_index = int(((moon_deg - sun_deg) % 360) // 6) % 11
+    karana_names = ["Bava", "Balava", "Kaulava", "Taitila", "Garija", "Vanija", "Vishti", "Shakuni", "Chatushpada", "Naga", "Kimstughna"]
+    karana_name = karana_names[karana_index]
+
+    sunrise_hour = 6.0 + (longitude / 15.0) * 0.5
+    solar_noon_hour = 12.0
+    abhijit_start = solar_noon_hour - 0.4
+    abhijit_end = solar_noon_hour + 0.4
+
+    sunrise_str = f"{int(sunrise_hour):02d}:{int((sunrise_hour % 1) * 60):02d}"
+    sunset_str = f"{int(18.0):02d}:{int(0):02d}"
+
+    rahu_start_hour = (sunrise_hour + 8.0) % 24
+    rahu_end_hour = (rahu_start_hour + 1.5) % 24
+
+    return {
+        "tithi": {"name": tithi_name, "index": tithi_index + 1, "description": f"Tithi is {tithi_name} - the {tithi_index + 1}{'st' if tithi_index == 0 else 'nd' if tithi_index == 1 else 'rd' if tithi_index == 2 else 'th'} lunar phase"},
+        "yoga": {"name": yoga_name, "index": yoga_index + 1, "description": f"Yoga is {yoga_name} - the {yoga_index + 1}{'st' if yoga_index == 0 else 'nd' if yoga_index == 1 else 'rd' if yoga_index == 2 else 'th'} of 27 yogas"},
+        "karana": {"name": karana_name, "index": karana_index + 1, "description": f"Karana is {karana_name}"},
+        "abhijit_muhurat": {"start": f"{int(abhijit_start):02d}:{int((abhijit_start % 1) * 60):02d}", "end": f"{int(abhijit_end):02d}:{int((abhijit_end % 1) * 60):02d}", "description": "48-minute auspicious window around solar noon"},
+        "sunrise": sunrise_str,
+        "sunset": sunset_str,
+        "rahu_kaal": {"start": f"{int(rahu_start_hour):02d}:{int((rahu_start_hour % 1) * 60):02d}", "end": f"{int(rahu_end_hour):02d}:{int((rahu_end_hour % 1) * 60):02d}", "description": "Inauspicious period ruled by Rahu"}
+    }
+
+def calculate_wealth_prediction(birth_date: str, birth_time: str, latitude: float, longitude: float, timezone: str = "UTC") -> Dict[str, Any]:
+    chart = calculate_natal_chart(birth_date, birth_time, latitude, longitude, timezone)
+    if "error" in chart:
+        return chart
+    planets = chart.get("planets", {})
+    houses = chart.get("houses", {})
+
+    wealth_potential = "medium"
+    investment_periods = []
+    loss_periods = []
+    lucky_years = []
+    property_buying_periods = []
+
+    venus = planets.get("Venus", {})
+    jupiter = planets.get("Jupiter", {})
+    mars = planets.get("Mars", {})
+    saturn = planets.get("Saturn", {})
+    sun = planets.get("Sun", {})
+
+    venus_sign = venus.get("sign", "")
+    jup_sign = jupiter.get("sign", "")
+    mars_sign = mars.get("sign", "")
+    sat_sign = saturn.get("sign", "")
+    sun_sign_val = sun.get("sign", "")
+
+    house_2 = houses.get("2", {}).get("sign", "")
+    house_11 = houses.get("11", {}).get("sign", "")
+    house_5 = houses.get("5", {}).get("sign", "")
+    house_8 = houses.get("8", {}).get("sign", "")
+
+    wealth_score = 0
+    if venus_sign in ["Taurus", "Libra", "Pisces"]:
+        wealth_score += 2
+    if jup_sign in ["Sagittarius", "Pisces"]:
+        wealth_score += 2
+    if house_2 in ["Taurus", "Capricorn", "Virgo"]:
+        wealth_score += 2
+    if house_11 in ["Sagittarius", "Pisces", "Aries"]:
+        wealth_score += 1
+    if mars_sign in ["Capricorn", "Aries"]:
+        wealth_score += 1
+    if sun_sign_val in ["Leo"]:
+        wealth_score += 1
+
+    if wealth_score >= 6:
+        wealth_potential = "high"
+    elif wealth_score >= 3:
+        wealth_potential = "medium"
+    else:
+        wealth_potential = "low"
+
+    desc_parts = []
+    if house_2:
+        desc_parts.append(f"2nd house (accumulated wealth) is in {house_2}")
+    if house_11:
+        desc_parts.append(f"11th house (gains) is in {house_11}")
+    if venus_sign:
+        desc_parts.append(f"Venus (luxury) is placed in {venus_sign}")
+    if jup_sign:
+        desc_parts.append(f"Jupiter (expansion) is in {jup_sign}")
+
+    import random as _rw
+    seed = f"{birth_date}{birth_time}{latitude}{longitude}"
+    rng = _rw.Random(seed)
+    base_year = datetime.fromisoformat(f"{birth_date}T{birth_time}").year if "T" in birth_date else datetime.strptime(birth_date, "%Y-%m-%d").year
+    for i in range(3):
+        investment_periods.append(base_year + rng.randint(25 + i * 5, 35 + i * 5))
+    for i in range(2):
+        loss_periods.append(base_year + rng.randint(40 + i * 3, 50 + i * 3))
+    for i in range(3):
+        lucky_years.append(base_year + rng.randint(20 + i * 7, 30 + i * 7))
+    for i in range(2):
+        property_buying_periods.append(base_year + rng.randint(30 + i * 5, 45 + i * 5))
+
+    return {
+        "wealth_potential": wealth_potential,
+        "investment_periods": investment_periods,
+        "loss_periods": loss_periods,
+        "lucky_years": lucky_years,
+        "property_buying_periods": property_buying_periods,
+        "description": ". ".join(desc_parts) + f". Overall wealth potential is {wealth_potential}."
+    }
+
+def calculate_foreign_settlement(birth_date: str, birth_time: str, latitude: float, longitude: float, timezone: str = "UTC") -> Dict[str, Any]:
+    chart = calculate_natal_chart(birth_date, birth_time, latitude, longitude, timezone)
+    if "error" in chart:
+        return chart
+    planets = chart.get("planets", {})
+    houses = chart.get("houses", {})
+
+    house_12 = houses.get("12", {}).get("sign", "")
+    house_9 = houses.get("9", {}).get("sign", "")
+    moon_sign = chart.get("moon_sign", "")
+    rahu = planets.get("North Node", {})
+    rahu_sign = rahu.get("sign", "")
+    jupiter = planets.get("Jupiter", {})
+    jup_sign = jupiter.get("sign", "")
+    saturn = planets.get("Saturn", {})
+    sat_sign = saturn.get("sign", "")
+
+    score = 0
+    desc_parts = []
+    if house_12 in ["Pisces", "Sagittarius", "Aquarius"]:
+        score += 20
+        desc_parts.append(f"12th house in {house_12} strongly favors foreign settlement")
+    if house_9 in ["Sagittarius", "Pisces"]:
+        score += 15
+        desc_parts.append(f"9th house in {house_9} indicates long journey luck")
+    if rahu_sign in ["Aquarius", "Pisces", "Gemini"]:
+        score += 15
+        desc_parts.append(f"Rahu in {rahu_sign} enhances foreign connections")
+    if moon_sign in ["Gemini", "Sagittarius", "Aquarius"]:
+        score += 10
+        desc_parts.append(f"Moon in {moon_sign} indicates restlessness for foreign lands")
+    if jup_sign in ["Sagittarius", "Pisces"]:
+        score += 10
+    if sat_sign in ["Aquarius", "Capricorn"]:
+        score += 5
+    if house_9 == house_12:
+        score += 10
+
+    score = min(score, 100)
+
+    country_hints = []
+    if rahu_sign:
+        rahu_idx = ZODIAC_SIGNS.index(rahu_sign) if rahu_sign in ZODIAC_SIGNS else 0
+        if rahu_idx <= 2:
+            country_hints.append("east")
+        elif rahu_idx <= 5:
+            country_hints.append("west")
+        elif rahu_idx <= 8:
+            country_hints.append("north")
+        else:
+            country_hints.append("south")
+
+    import random as _rf
+    base_year = datetime.fromisoformat(f"{birth_date}T{birth_time}").year if "T" in birth_date else datetime.strptime(birth_date, "%Y-%m-%d").year
+    best_years = [base_year + _rf.Random(f"{birth_date}f1").randint(22, 30),
+                  base_year + _rf.Random(f"{birth_date}f2").randint(32, 40),
+                  base_year + _rf.Random(f"{birth_date}f3").randint(42, 50)]
+
+    return {
+        "probability_score": score,
+        "best_years": best_years,
+        "country_direction": country_hints[0] if country_hints else "west",
+        "description": ". ".join(desc_parts) + f". Foreign settlement probability: {score}%."
+    }
+
+def check_manglik(chart: Dict) -> Dict[str, Any]:
+    planets = chart.get("planets", {})
+    mars = planets.get("Mars", {})
+    mars_deg = mars.get("degree", 0)
+    mars_sign = mars.get("sign", "")
+    asc_deg = chart.get("ascendant_degree", 0)
+    asc_sign = chart.get("rising_sign", "Aries")
+    asc_idx = ZODIAC_SIGNS.index(asc_sign) if asc_sign in ZODIAC_SIGNS else 0
+
+    mars_absolute = (ZODIAC_SIGNS.index(mars_sign) * 30 + (mars_deg % 30)) if mars_sign else mars_deg
+    asc_absolute = (asc_idx * 30 + (asc_deg % 30))
+
+    diff = (mars_absolute - asc_absolute) % 360
+    house_position = int(diff // 30) + 1
+
+    manglik_houses = {1, 2, 4, 7, 8, 12}
+    house_places = []
+    if house_position in manglik_houses:
+        house_places.append(house_position)
+
+    level = "none"
+    if len(house_places) == 0:
+        level = "none"
+    elif len(house_places) <= 1:
+        level = "low"
+    elif len(house_places) <= 2:
+        level = "medium"
+    else:
+        level = "high"
+
+    return {
+        "is_manglik": len(house_places) > 0,
+        "dosha_level": level,
+        "house_placements": house_places if house_places else [house_position],
+        "description": f"Mars is in house {house_position} from Lagna. {'Manglik dosha present' if house_places else 'No Manglik dosha'} - level: {level}."
+    }
+
+def calculate_navamsa_chart(birth_date: str, birth_time: str, latitude: float, longitude: float, timezone: str = "UTC") -> Dict[str, Any]:
+    chart = calculate_natal_chart(birth_date, birth_time, latitude, longitude, timezone)
+    if "error" in chart:
+        return chart
+    planets = chart.get("planets", {})
+
+    def get_navamsa_sign(planet_deg: float) -> str:
+        sign_index = int(planet_deg // 30) % 12
+        degree_in_sign = planet_deg % 30
+        navamsa_part = int(degree_in_sign // 3.333)
+        sign_type = sign_index % 3
+        if sign_type == 0:
+            navamsa_sign_num = (sign_index + navamsa_part) % 12
+        elif sign_type == 1:
+            navamsa_sign_num = (sign_index + 4 + navamsa_part) % 12
+        else:
+            navamsa_sign_num = (sign_index + 8 + navamsa_part) % 12
+        return ZODIAC_SIGNS[navamsa_sign_num]
+
+    planets_in_navamsa = {}
+    houses_in_navamsa = {}
+    for planet, data in planets.items():
+        deg = data.get("degree", 0)
+        n_sign = get_navamsa_sign(deg)
+        planets_in_navamsa[planet] = {"degree": round(deg, 2), "sign": data.get("sign", ""), "navamsa_sign": n_sign}
+        house_num = (int(deg // 30) % 12) + 1
+        houses_in_navamsa[str(house_num)] = {"sign": n_sign}
+
+    return {
+        "planets_in_navamsa": planets_in_navamsa,
+        "houses_in_navamsa": houses_in_navamsa
+    }
+
+def calculate_festival_calendar(year: int) -> Dict[str, str]:
+    import math as _fm
+    def approx_moon_day(y, m, d):
+        jd = datetime_to_julian_day(datetime(y, m, d, 12, 0, 0))
+        t = (jd - 2451545.0) / 36525.0
+        moon_long = (218.3164477 + 481267.88123421 * t - 0.0015786 * t * t) % 360
+        sun_long = (280.46646 + 36000.76983 * t + 0.0003032 * t * t) % 360
+        return ((moon_long - sun_long) % 360) / 12
+
+    def find_tithi_date(y, m, target_tithi):
+        for d in range(1, 32):
+            try:
+                t = approx_moon_day(y, m, d)
+                if int(t) % 15 == target_tithi % 15:
+                    return f"{y}-{m:02d}-{d:02d}"
+            except:
+                pass
+        return f"{y}-{m:02d}-15"
+
+    diwali = find_tithi_date(year, 10, 15) if int(approx_moon_day(year, 10, 1)) >= 8 else find_tithi_date(year, 11, 15)
+    holi = find_tithi_date(year, 3, 14)
+    navratri_spring_start = find_tithi_date(year, 4, 1)
+    navratri_autumn_start = find_tithi_date(year, 10, 1)
+    raksha_bandhan = find_tithi_date(year, 8, 14)
+    janmashtami = find_tithi_date(year, 8, 8) if int(approx_moon_day(year, 8, 1)) < 8 else find_tithi_date(year, 9, 8)
+    ganesh_chaturthi = find_tithi_date(year, 9, 4)
+    mahashivratri = find_tithi_date(year, 2, 14) if int(approx_moon_day(year, 2, 1)) >= 8 else find_tithi_date(year, 3, 14)
+    karva_chauth = find_tithi_date(year, 10, 18)
+
+    purnima_dates = []
+    amavasya_dates = []
+    for m in range(1, 13):
+        for d in [1, 15, 30]:
+            try:
+                t = approx_moon_day(year, m, d)
+                ti = int(t) % 15
+                if ti == 14:
+                    purnima_dates.append(f"{year}-{m:02d}-{d:02d}")
+                elif ti == 0:
+                    amavasya_dates.append(f"{year}-{m:02d}-{d:02d}")
+            except:
+                pass
+
+    ekadashi_dates = []
+    for m in range(1, 13):
+        for d in [1, 16]:
+            try:
+                t = approx_moon_day(year, m, d)
+                ti = int(t) % 15
+                if ti == 11:
+                    ekadashi_dates.append(f"{year}-{m:02d}-{d:02d}")
+            except:
+                pass
+
+    return {
+        "diwali": diwali,
+        "holi": holi,
+        "navratri_spring": navratri_spring_start,
+        "navratri_autumn": navratri_autumn_start,
+        "dussehra": f"{year}-10-{int(find_tithi_date(year, 10, 10)[-2:]):02d}" if find_tithi_date(year, 10, 10) else f"{year}-10-15",
+        "raksha_bandhan": raksha_bandhan,
+        "janmashtami": janmashtami,
+        "ganesh_chaturthi": ganesh_chaturthi,
+        "mahashivratri": mahashivratri,
+        "makar_sankranti": f"{year}-01-14",
+        "pongal": f"{year}-01-14",
+        "karva_chauth": karva_chauth,
+        "purnima_dates": purnima_dates[:6],
+        "amavasya_dates": amavasya_dates[:6],
+        "ekadashi_dates": ekadashi_dates[:6]
+    }
+
+def calculate_name_correction(name: str, birth_date: str) -> Dict[str, Any]:
+    name_values = {c: i + 1 for i, c in enumerate('ABCDEFGHIJKLMNOPQRSTUVWXYZ')}
+    name_values.update({'A': 1, 'B': 2, 'C': 3, 'D': 4, 'E': 5, 'F': 6, 'G': 7, 'H': 8, 'I': 9, 'J': 1, 'K': 2, 'L': 3, 'M': 4, 'N': 5, 'O': 6, 'P': 7, 'Q': 8, 'R': 9, 'S': 1, 'T': 2, 'U': 3, 'V': 4, 'W': 5, 'X': 6, 'Y': 7, 'Z': 8})
+
+    def reduce_num(n):
+        while n > 9 and n not in [11, 22, 33]:
+            n = sum(int(d) for d in str(n))
+        return n
+
+    name_digits = ''.join(c for c in name.upper() if c.isalpha())
+    current_number = reduce_num(sum(name_values.get(c, 0) for c in name_digits))
+
+    birth_digits = ''.join(c for c in birth_date if c.isdigit())
+    life_path = reduce_num(sum(int(d) for d in birth_digits))
+
+    good_numbers = [1, 3, 5, 6, 11, 22, 33]
+    suggestions = []
+    if current_number not in good_numbers:
+        for target in good_numbers:
+            diff = target - current_number
+            if diff > 0 and diff < 10:
+                from copy import deepcopy
+                last_char = name_digits[-1] if name_digits else 'A'
+                last_val = name_values.get(last_char, 1)
+                new_last = chr(ord('A') + (last_val + diff - 1) % 26)
+                alt = name.upper()[:-1] + new_last if name else 'A'
+                suggestions.append({"spelling": alt, "number": target})
+                if len(suggestions) >= 3:
+                    break
+
+    return {
+        "current_name": name,
+        "current_name_number": current_number,
+        "suggested_spellings": suggestions[:3],
+        "business_name_suggestions": [f"{name.upper()} ENTERPRISES", f"{name.upper()} VENTURES", f"{name.upper()} GROUP"],
+        "baby_name_suggestions": [f"Baby-{name[:3]}", f"{name[:2]}AN", f"SHRI {name[:4]}"] if life_path else []
+    }
+
+def calculate_remedies(chart: Dict) -> Dict[str, Any]:
+    planets = chart.get("planets", {})
+
+    planet_data = {
+        "Sun": {"mantra": "Om Namah Suryaya Namah", "translation": "I bow to the Sun", "fasting_day": "Sunday", "charity": "Wheat, jaggery, copper", "deity": "Lord Surya", "color": "Orange/Red", "gemstone": "Ruby"},
+        "Moon": {"mantra": "Om Chandraya Namah", "translation": "I bow to the Moon", "fasting_day": "Monday", "charity": "Rice, milk, silver", "deity": "Lord Chandra", "color": "White/Silver", "gemstone": "Pearl"},
+        "Mercury": {"mantra": "Om Buddhaya Namah", "translation": "I bow to Mercury", "fasting_day": "Wednesday", "charity": "Green items, books", "deity": "Lord Vishnu", "color": "Green", "gemstone": "Emerald"},
+        "Venus": {"mantra": "Om Shukraya Namah", "translation": "I bow to Venus", "fasting_day": "Friday", "charity": "White items, sweets", "deity": "Goddess Lakshmi", "color": "White/Pink", "gemstone": "Diamond"},
+        "Mars": {"mantra": "Om Angarakaya Namah", "translation": "I bow to Mars", "fasting_day": "Tuesday", "charity": "Red items, lentils", "deity": "Lord Hanuman", "color": "Red", "gemstone": "Red Coral"},
+        "Jupiter": {"mantra": "Om Gurave Namah", "translation": "I bow to Jupiter", "fasting_day": "Thursday", "charity": "Yellow items, gold", "deity": "Lord Brihaspati", "color": "Yellow", "gemstone": "Yellow Sapphire"},
+        "Saturn": {"mantra": "Om Shanaischaraya Namah", "translation": "I bow to Saturn", "fasting_day": "Saturday", "charity": "Black items, iron, oil", "deity": "Lord Shani", "color": "Black/Blue", "gemstone": "Blue Sapphire"}
+    }
+
+    weak_planet_names = []
+    planet_remedies = []
+    for pname, info in planet_data.items():
+        if pname in planets:
+            pdata = planets[pname]
+            psign = pdata.get("sign", "")
+            pdeg = pdata.get("degree", 0)
+            debilitation_signs = {"Sun": "Libra", "Moon": "Scorpio", "Mercury": "Pisces", "Venus": "Virgo", "Mars": "Cancer", "Jupiter": "Capricorn", "Saturn": "Aries"}
+            is_weak = psign == debilitation_signs.get(pname, "")
+            if is_weak:
+                weak_planet_names.append(pname)
+            planet_remedies.append({
+                "planet": pname,
+                "sign": psign,
+                "strength": "weak" if is_weak else "neutral",
+                "mantra": info["mantra"],
+                "mantra_translation": info["translation"],
+                "fasting_day": info["fasting_day"],
+                "charity": info["charity"],
+                "deity": info["deity"],
+                "color": info["color"],
+                "gemstone": info["gemstone"]
+            })
+
+    return {
+        "planet_remedies": planet_remedies,
+        "general_remedies": [
+            "Chant the Gayatri Mantra 108 times daily",
+            "Perform daily Surya Namaskar at sunrise",
+            "Donate food to the needy on your birthday",
+            "Keep a small Tulsi plant at home",
+            "Practice meditation and mindfulness daily"
+        ],
+        "recommended_deities": ["Lord Ganesha (remover of obstacles)", "Goddess Lakshmi (prosperity)", "Lord Vishnu (protection)"] + [f"{info['deity']}" for pname, info in planet_data.items() if pname in weak_planet_names]
+    }
+
+def calculate_life_timeline(birth_date: str, birth_time: str, latitude: float, longitude: float, timezone: str = "UTC") -> Dict[str, Any]:
+    try:
+        dt = datetime.fromisoformat(f"{birth_date}T{birth_time}")
+    except:
+        dt = datetime.strptime(f"{birth_date} {birth_time}", "%Y-%m-%d %H:%M")
+    jd = datetime_to_julian_day(dt)
+    positions = calculate_planet_positions(jd, latitude, longitude)
+    moon_deg = positions.get("Moon", 0)
+    nakshatra_idx = int((moon_deg % 360) / 13.333) % 27
+    nakshatra_lord = NAKSHATRA_LORDS[nakshatra_idx]
+    dasha_order = VIMSHOTTARI_MAHADASHA_ORDER
+    start_idx = dasha_order.index(nakshatra_lord) if nakshatra_lord in dasha_order else 0
+
+    themes = {
+        "Ketu": {"theme": "Spirituality & Detachment", "description": "Period of spiritual growth, introspection, and releasing attachments"},
+        "Venus": {"theme": "Love, Luxury & Relationships", "description": "Focus on relationships, creativity, material comforts, and artistic pursuits"},
+        "Sun": {"theme": "Career & Self-expression", "description": "Leadership, career advancement, recognition, and personal authority"},
+        "Moon": {"theme": "Emotional Growth & Family", "description": "Emotional development, family matters, nurturing, and home life"},
+        "Mars": {"theme": "Action & Ambition", "description": "Dynamic energy, career challenges, competition, and taking bold action"},
+        "Rahu": {"theme": "Material Ambitions & Foreign", "description": "Material success, foreign connections, innovation, and worldly desires"},
+        "Jupiter": {"theme": "Expansion & Wisdom", "description": "Learning, teaching, travel, higher education, and spiritual growth"},
+        "Saturn": {"theme": "Karma & Discipline", "description": "Hard work, discipline, karmic lessons, and building lasting foundations"},
+        "Mercury": {"theme": "Communication & Business", "description": "Communication, business, networking, and intellectual development"}
+    }
+
+    birth_year = dt.year
+    timeline = []
+    age = 0.0
+    for i in range(9):
+        pi = (start_idx + i) % 9
+        planet = dasha_order[pi]
+        d_years = VIMSHOTTARI_YEARS[planet]
+        th = themes.get(planet, {"theme": "General Growth", "description": "Period of general life development"})
+        timeline.append({
+            "age_start": round(age, 1),
+            "age_end": round(age + d_years, 1),
+            "period_type": "Mahadasha",
+            "planet": planet,
+            "theme": th["theme"],
+            "description": th["description"]
+        })
+        age += d_years
+
+    life_stages = []
+    for entry in timeline:
+        life_stages.append(f"Age {entry['age_start']}-{entry['age_end']}: {entry['planet']} - {entry['theme']}")
+
+    return {
+        "timeline": timeline,
+        "life_stages": life_stages,
+        "moon_nakshatra": NAKSHATRAS[nakshatra_idx],
+        "starting_dasha": nakshatra_lord
+    }
+
+def calculate_face_reading(features: Dict[str, str]) -> Dict[str, Any]:
+    features_lower = {k.lower(): v.lower() if isinstance(v, str) else v for k, v in features.items()}
+
+    face_shape = features_lower.get("face_shape", "oval")
+    forehead = features_lower.get("forehead", "medium")
+    eyebrows = features_lower.get("eyebrows", "medium")
+    eyes = features_lower.get("eyes", "medium")
+    nose = features_lower.get("nose", "medium")
+    lips = features_lower.get("lips", "medium")
+    chin = features_lower.get("chin", "medium")
+    ears = features_lower.get("ears", "medium")
+
+    personality_traits = []
+    if face_shape == "round":
+        personality_traits.extend(["Friendly and approachable", "Good-natured and caring", "Emotionally sensitive"])
+    elif face_shape == "oval":
+        personality_traits.extend(["Balanced and harmonious", "Adaptable and diplomatic", "Well-proportioned personality"])
+    elif face_shape == "square":
+        personality_traits.extend(["Strong-willed and determined", "Practical and grounded", "Natural leader"])
+    elif face_shape == "heart":
+        personality_traits.extend(["Creative and artistic", "Passionate and enthusiastic", "Quick-witted"])
+    elif face_shape == "oblong":
+        personality_traits.extend(["Analytical and thoughtful", "Reserved but insightful", "Strong sense of purpose"])
+
+    strengths = []
+    if forehead in ["high", "wide"]:
+        strengths.append("Intellectual and visionary thinking")
+    if eyebrows in ["thick", "straight"]:
+        strengths.append("Strong willpower and determination")
+    if eyes in ["large", "almond"]:
+        strengths.append("Perceptive and intuitive nature")
+    if nose in ["straight", "long"]:
+        strengths.append("Leadership qualities and confidence")
+    if lips in ["full", "wide"]:
+        strengths.append("Generous and communicative nature")
+    if chin in ["strong", "square"]:
+        strengths.append("Resilience and persistence")
+    if ears in ["large", "attached"]:
+        strengths.append("Good judgment and stability")
+
+    career_affinities = {}
+    if face_shape == "round":
+        career_affinities = {"primary": "Healthcare, Counseling, Education", "secondary": "Hospitality, Arts"}
+    elif face_shape == "square":
+        career_affinities = {"primary": "Management, Engineering, Military", "secondary": "Construction, Law"}
+    elif face_shape == "oval":
+        career_affinities = {"primary": "Diplomacy, Design, Media", "secondary": "Business, Teaching"}
+    elif face_shape == "heart":
+        career_affinities = {"primary": "Creative Arts, Marketing, Writing", "secondary": "Entrepreneurship"}
+    else:
+        career_affinities = {"primary": "Research, Technology, Philosophy", "secondary": "Writing, Consulting"}
+
+    return {
+        "personality_traits": personality_traits,
+        "confidence_level": "high" if any(s in str(strengths) for s in ["Leadership", "Determination"]) else "medium",
+        "communication_style": "Direct and expressive" if lips in ["full", "wide"] else "Thoughtful and measured",
+        "strengths": strengths,
+        "career_affinities": career_affinities,
+        "disclaimer": "Face reading is for entertainment purposes only and should not be used for making important life decisions."
+    }
+
+def generate_pdf_report(birth_date: str, birth_time: str, latitude: float, longitude: float, timezone: str = "UTC") -> Dict[str, Any]:
+    chart = calculate_natal_chart(birth_date, birth_time, latitude, longitude, timezone)
+    if "error" in chart:
+        return {"error": "Could not generate chart for PDF"}
+    try:
+        from fpdf import FPDF
+        import base64
+        import io
+
+        pdf = FPDF()
+        pdf.add_page()
+        pdf.set_font("Arial", "B", 16)
+        pdf.cell(200, 10, "Astrology Report", ln=True, align="C")
+        pdf.set_font("Arial", "", 12)
+        pdf.ln(10)
+        pdf.cell(200, 10, f"Date: {birth_date}  Time: {birth_time}", ln=True)
+        pdf.cell(200, 10, f"Location: Lat {latitude}, Lon {longitude}", ln=True)
+        pdf.ln(5)
+        pdf.set_font("Arial", "B", 14)
+        pdf.cell(200, 10, "Birth Chart Summary", ln=True)
+        pdf.set_font("Arial", "", 12)
+        pdf.cell(200, 10, f"Sun Sign: {chart.get('sun_sign', 'N/A')}", ln=True)
+        pdf.cell(200, 10, f"Moon Sign: {chart.get('moon_sign', 'N/A')}", ln=True)
+        pdf.cell(200, 10, f"Rising Sign: {chart.get('rising_sign', 'N/A')}", ln=True)
+        pdf.cell(200, 10, f"Ascendant Degree: {chart.get('ascendant_degree', 0)}", ln=True)
+        pdf.cell(200, 10, f"Midheaven Degree: {chart.get('midheaven_degree', 0)}", ln=True)
+
+        pdf.add_page()
+        pdf.set_font("Arial", "B", 14)
+        pdf.cell(200, 10, "Planetary Positions", ln=True)
+        pdf.set_font("Arial", "", 10)
+        planets_data = chart.get("planets", {})
+        pdf.cell(60, 10, "Planet", border=1)
+        pdf.cell(40, 10, "Degree", border=1)
+        pdf.cell(60, 10, "Sign", border=1)
+        pdf.ln()
+        for pname, pdata in planets_data.items():
+            pdf.cell(60, 10, pname, border=1)
+            pdf.cell(40, 10, str(pdata.get("degree", 0)), border=1)
+            pdf.cell(60, 10, pdata.get("sign", ""), border=1)
+            pdf.ln()
+
+        pdf.add_page()
+        pdf.set_font("Arial", "B", 14)
+        pdf.cell(200, 10, "House Positions", ln=True)
+        pdf.set_font("Arial", "", 10)
+        houses = chart.get("houses", {})
+        pdf.cell(40, 10, "House", border=1)
+        pdf.cell(60, 10, "Cusp", border=1)
+        pdf.cell(60, 10, "Sign", border=1)
+        pdf.ln()
+        for hnum, hdata in houses.items():
+            pdf.cell(40, 10, f"House {hnum}", border=1)
+            pdf.cell(60, 10, str(hdata.get("cusp", 0)), border=1)
+            pdf.cell(60, 10, hdata.get("sign", ""), border=1)
+            pdf.ln()
+
+        pdf.add_page()
+        pdf.set_font("Arial", "B", 14)
+        pdf.cell(200, 10, "Detailed Analysis", ln=True)
+        pdf.set_font("Arial", "", 10)
+        analysis = generate_detailed_analysis(chart)
+        for key in ["strengths", "challenges", "career", "relationships", "health"]:
+            pdf.set_font("Arial", "B", 12)
+            pdf.cell(200, 10, key.capitalize(), ln=True)
+            pdf.set_font("Arial", "", 10)
+            items = analysis.get(key, [])
+            if isinstance(items, list):
+                for item in items[:3]:
+                    pdf.multi_cell(0, 8, f"- {item}")
+            elif isinstance(items, str):
+                pdf.multi_cell(0, 8, items)
+            pdf.ln(5)
+
+        pdf.add_page()
+        pdf.set_font("Arial", "B", 14)
+        pdf.cell(200, 10, "Remedies", ln=True)
+        remedies = calculate_remedies(chart)
+        for rem in remedies.get("planet_remedies", []):
+            pdf.set_font("Arial", "B", 10)
+            pdf.cell(200, 10, f"{rem['planet']}:", ln=True)
+            pdf.set_font("Arial", "", 10)
+            if rem.get("strength") == "weak":
+                pdf.cell(200, 10, f"Mantra: {rem['mantra']}", ln=True)
+                pdf.cell(200, 10, f"Fasting: {rem['fasting_day']}", ln=True)
+                pdf.cell(200, 10, f"Charity: {rem['charity']}", ln=True)
+            pdf.ln(3)
+
+        pdf.add_page()
+        pdf.set_font("Arial", "B", 14)
+        pdf.cell(200, 10, "Dasha Timeline & Predictions", ln=True)
+        timeline = calculate_life_timeline(birth_date, birth_time, latitude, longitude, timezone)
+        pdf.set_font("Arial", "", 10)
+        for entry in timeline.get("timeline", [])[:10]:
+            pdf.cell(200, 10, f"Age {entry['age_start']}-{entry['age_end']}: {entry['planet']} - {entry['theme']}", ln=True)
+
+        pdf_bytes = pdf.output(dest="S").encode("latin-1")
+        if isinstance(pdf_bytes, str):
+            pdf_bytes = pdf_bytes.encode("latin-1")
+        pdf_base64 = base64.b64encode(pdf_bytes).decode("utf-8")
+
+        return {
+            "pdf_base64": pdf_base64,
+            "filename": f"astrology_report_{birth_date}.pdf",
+            "pages_count": pdf.pages_count
+        }
+    except ImportError:
+        return {"error": "fpdf2 library is required. Install with: pip install fpdf2"}
+    except Exception as e:
+        return {"error": f"PDF generation failed: {str(e)}"}
