@@ -162,6 +162,53 @@ GENERAL_HI = (
     "सर्वोत्तम समय: वर्तमान समय आत्म-चिंतन और योजना बनाने के लिए उपयुक्त है।"
 )
 
+COMMON_HI = {
+    "Career": "करियर", "Love": "प्रेम", "Health": "स्वास्थ्य", "Finance": "वित्त",
+    "Prediction": "भविष्यवाणी", "Confidence": "विश्वास", "Reasoning": "कारण",
+    "Best Timing": "सर्वोत्तम समय", "Preparation": "तैयारी", "Summary": "सारांश",
+    "Overall": "समग्र", "Daily": "दैनिक", "Weekly": "साप्ताहिक", "Monthly": "मासिक",
+    "Yearly": "वार्षिक", "Horoscope": "राशिफल", "Analysis": "विश्लेषण",
+    "Details": "विवरण", "Score": "स्कोर", "Rating": "रेटिंग",
+    "Good": "शुभ", "Bad": "अशुभ", "Neutral": "सामान्य", "Excellent": "उत्तम",
+    "Strength": "शक्ति", "Weakness": "कमजोरी", "Opportunity": "अवसर",
+    "Challenge": "चुनौती", "Advice": "सलाह", "Recommendation": "सुझाव",
+    "High": "उच्च", "Medium": "मध्यम", "Low": "निम्न",
+    "North Node": "राहु", "South Node": "केतु",
+    "Retrograde": "वक्री", "Direct": "मार्गी",
+    "Benefic": "शुभ", "Malefic": "अशुभ",
+    "Element": "तत्व", "Quality": "गुण", "Ruler": "स्वामी",
+    "House": "भाव", "Sign": "राशि", "Degree": "अंश",
+    "Rising": "लग्न", "Ascendant": "लग्न",
+    'Fire': 'अग्नि', 'Earth': 'पृथ्वी', 'Air': 'वायु', 'Water': 'जल',
+    'Cardinal': 'चर', 'Fixed': 'स्थिर', 'Mutable': 'द्विस्वभाव',
+    'Aries': 'मेष', 'Taurus': 'वृषभ', 'Gemini': 'मिथुन', 'Cancer': 'कर्क',
+    'Leo': 'सिंह', 'Virgo': 'कन्या', 'Libra': 'तुला', 'Scorpio': 'वृश्चिक',
+    'Sagittarius': 'धनु', 'Capricorn': 'मकर', 'Aquarius': 'कुंभ', 'Pisces': 'मीन',
+    'Sun': 'सूर्य', 'Moon': 'चंद्र', 'Mars': 'मंगल', 'Mercury': 'बुध',
+    'Jupiter': 'गुरु', 'Venus': 'शुक्र', 'Saturn': 'शनि', 'Rahu': 'राहु',
+    'Ketu': 'केतु', 'Uranus': 'अरुण', 'Neptune': 'वरुण', 'Pluto': 'प्लूटो',
+    'Monday': 'सोमवार', 'Tuesday': 'मंगलवार', 'Wednesday': 'बुधवार',
+    'Thursday': 'गुरुवार', 'Friday': 'शुक्रवार', 'Saturday': 'शनिवार', 'Sunday': 'रविवार',
+    'Gems': 'रत्न', 'Mantra': 'मंत्र', 'Ritual': 'अनुष्ठान', 'Charity': 'दान',
+    'Yoga': 'योग', 'Dasha': 'दशा', 'Period': 'अवधि', 'Transit': 'गोचर',
+}
+
+def translate_response(data, lang):
+    """Recursively translate all string values in a response dict/list"""
+    if lang != "hi":
+        return data
+    if isinstance(data, dict):
+        return {k: translate_response(v, lang) for k, v in data.items()}
+    if isinstance(data, list):
+        return [translate_response(item, lang) for item in data]
+    if isinstance(data, str):
+        result = data
+        for en, hi in COMMON_HI.items():
+            # Word-boundary replacement to avoid partial matches
+            result = result.replace(en, hi)
+        return result
+    return data
+
 def get_greeting(lang, name=""):
     if lang == "hi":
         return f"नमस्ते{', ' + name if name else ''}! मैं आपका AI ज्योतिष सहायक हूं। अपने चार्ट, अंक ज्योतिष, KP ज्योतिष या सामान्य ज्योतिष मार्गदर्शन के बारे में मुझसे कुछ भी पूछें।"

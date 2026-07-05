@@ -14,6 +14,7 @@ class PanchangRequest(BaseModel):
     date: str
     latitude: float = 28.6139
     longitude: float = 77.209
+    language: str = "en"
 
 class WealthRequest(BaseModel):
     birth_date: str
@@ -126,46 +127,46 @@ async def root():
 async def get_natal_chart(request: NatalChartRequest):
     try:
         chart = astrology.calculate_natal_chart(request.birth_date, request.birth_time, request.latitude, request.longitude, request.timezone)
-        return chart
+        return translations.translate_response(chart, request.language)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/astrology/horoscope/{sign}")
-async def get_horoscope(sign: str, date: str = None):
+async def get_horoscope(sign: str, date: str = None, language: str = "en"):
     try:
         target_date = datetime.now().date() if not date else datetime.strptime(date, "%Y-%m-%d").date()
         horoscope = astrology.generate_daily_horoscope(sign, datetime.combine(target_date, datetime.min.time()))
-        return horoscope
+        return translations.translate_response(horoscope, language)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/astrology/weekly-horoscope/{sign}")
-async def get_weekly_horoscope(sign: str, week_start: str = None):
+async def get_weekly_horoscope(sign: str, week_start: str = None, language: str = "en"):
     try:
         if not week_start:
             week_start = datetime.now().strftime("%Y-%m-%d")
         result = astrology.generate_weekly_horoscope(sign, week_start)
-        return result
+        return translations.translate_response(result, language)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/astrology/monthly-horoscope/{sign}")
-async def get_monthly_horoscope(sign: str, year: int = None, month: int = None):
+async def get_monthly_horoscope(sign: str, year: int = None, month: int = None, language: str = "en"):
     try:
         if not year:
             year = datetime.now().year
         if not month:
             month = datetime.now().month
         result = astrology.generate_monthly_horoscope(sign, year, month)
-        return result
+        return translations.translate_response(result, language)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/api/astrology/transits")
-async def get_transits(date: str, latitude: float, longitude: float):
+async def get_transits(date: str, latitude: float, longitude: float, language: str = "en"):
     try:
         transits = astrology.calculate_transits(date, latitude, longitude)
-        return transits
+        return translations.translate_response(transits, language)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -173,7 +174,7 @@ async def get_transits(date: str, latitude: float, longitude: float):
 async def get_compatibility(request: CompatibilityRequest):
     try:
         result = astrology.calculate_compatibility(request.chart1, request.chart2)
-        return result
+        return translations.translate_response(result, request.language)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -181,7 +182,7 @@ async def get_compatibility(request: CompatibilityRequest):
 async def get_kundli_matching(request: CompatibilityRequest):
     try:
         result = astrology.calculate_kundli_matching(request.chart1, request.chart2)
-        return result
+        return translations.translate_response(result, request.language)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -189,7 +190,7 @@ async def get_kundli_matching(request: CompatibilityRequest):
 async def get_numerology(request: NumerologyRequest):
     try:
         result = astrology.calculate_numerology(request.name, request.birth_date)
-        return result
+        return translations.translate_response(result, request.language)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -198,7 +199,7 @@ async def get_detailed_analysis(request: NatalChartRequest):
     try:
         chart = astrology.calculate_natal_chart(request.birth_date, request.birth_time, request.latitude, request.longitude, request.timezone)
         analysis = astrology.generate_detailed_analysis(chart)
-        return analysis
+        return translations.translate_response(analysis, request.language)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -206,7 +207,7 @@ async def get_detailed_analysis(request: NatalChartRequest):
 async def get_tarot(request: TarotRequest):
     try:
         result = astrology.draw_tarot_cards(request.count, request.question)
-        return result
+        return translations.translate_response(result, request.language)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -214,7 +215,7 @@ async def get_tarot(request: TarotRequest):
 async def get_muhurat(request: MuhuratRequest):
     try:
         result = astrology.calculate_muhurat(request.date, request.city)
-        return result
+        return translations.translate_response(result, request.language)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -226,7 +227,7 @@ async def get_yearly_predictions(request: YearlyPredictionRequest):
             request.latitude, request.longitude,
             request.timezone, request.years
         )
-        return result
+        return translations.translate_response(result, request.language)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -236,7 +237,7 @@ async def get_yearly_predictions(request: YearlyPredictionRequest):
 async def get_kp_chart(request: NatalChartRequest):
     try:
         result = astrology.calculate_kp_chart(request.birth_date, request.birth_time, request.latitude, request.longitude, request.timezone)
-        return result
+        return translations.translate_response(result, request.language)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -244,7 +245,7 @@ async def get_kp_chart(request: NatalChartRequest):
 async def get_kp_dasha(request: NatalChartRequest):
     try:
         result = astrology.calculate_vimshottari_dasha(request.birth_date, request.birth_time, request.latitude, request.longitude, request.timezone)
-        return result
+        return translations.translate_response(result, request.language)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -254,12 +255,13 @@ class HoraryRequest(BaseModel):
     question_time: str
     latitude: float
     longitude: float
+    language: str = "en"
 
 @app.post("/api/astrology/kp-horary")
 async def get_kp_horary(request: HoraryRequest):
     try:
         result = astrology.calculate_horary_kp(request.question, request.question_date, request.question_time, request.latitude, request.longitude)
-        return result
+        return translations.translate_response(result, request.language)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -267,7 +269,7 @@ async def get_kp_horary(request: HoraryRequest):
 async def get_panchang(request: PanchangRequest):
     try:
         result = astrology.calculate_panchang(request.date, request.latitude, request.longitude)
-        return result
+        return translations.translate_response(result, request.language)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -275,7 +277,7 @@ async def get_panchang(request: PanchangRequest):
 async def get_wealth_prediction(request: WealthRequest):
     try:
         result = astrology.calculate_wealth_prediction(request.birth_date, request.birth_time, request.latitude, request.longitude, request.timezone)
-        return result
+        return translations.translate_response(result, request.language)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -283,7 +285,7 @@ async def get_wealth_prediction(request: WealthRequest):
 async def get_foreign_settlement(request: ForeignSettlementRequest):
     try:
         result = astrology.calculate_foreign_settlement(request.birth_date, request.birth_time, request.latitude, request.longitude, request.timezone)
-        return result
+        return translations.translate_response(result, request.language)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -294,7 +296,7 @@ async def get_manglik(request: ManglikRequest):
         if request.chart2:
             result2 = astrology.check_manglik(request.chart2)
             result["chart2"] = result2
-        return result
+        return translations.translate_response(result, request.language)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -302,7 +304,7 @@ async def get_manglik(request: ManglikRequest):
 async def get_navamsa_chart(request: NavamsaRequest):
     try:
         result = astrology.calculate_navamsa_chart(request.birth_date, request.birth_time, request.latitude, request.longitude, request.timezone)
-        return result
+        return translations.translate_response(result, request.language)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -310,7 +312,7 @@ async def get_navamsa_chart(request: NavamsaRequest):
 async def get_name_correction(request: NameCorrectionRequest):
     try:
         result = astrology.calculate_name_correction(request.name, request.birth_date)
-        return result
+        return translations.translate_response(result, request.language)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -319,7 +321,7 @@ async def get_remedies_detailed(request: RemediesRequest):
     try:
         chart = astrology.calculate_natal_chart(request.birth_date, request.birth_time, request.latitude, request.longitude, request.timezone)
         result = astrology.calculate_remedies(chart)
-        return result
+        return translations.translate_response(result, request.language)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -327,7 +329,7 @@ async def get_remedies_detailed(request: RemediesRequest):
 async def get_life_timeline(request: LifeTimelineRequest):
     try:
         result = astrology.calculate_life_timeline(request.birth_date, request.birth_time, request.latitude, request.longitude, request.timezone)
-        return result
+        return translations.translate_response(result, request.language)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -335,7 +337,7 @@ async def get_life_timeline(request: LifeTimelineRequest):
 async def get_pdf_report(request: PdfReportRequest):
     try:
         result = astrology.generate_pdf_report(request.birth_date, request.birth_time, request.latitude, request.longitude, request.timezone)
-        return result
+        return translations.translate_response(result, request.language)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
